@@ -35,7 +35,14 @@ jobs:
           SMTP_USER: ${{ secrets.SMTP_USER }}
           SMTP_APP_PASSWORD: ${{ secrets.SMTP_APP_PASSWORD }}
           ALERT_TO: ${{ secrets.ALERT_TO }}
-        run: python -m radar digest
+        # Until the email secrets exist, render the digest without sending it (and without failing).
+        run: |
+          if [ -z "$SMTP_USER" ]; then
+            echo "::warning::Email secrets are not set yet; running in dry-run mode, no email sent."
+            python -m radar digest --dry-run
+          else
+            python -m radar digest
+          fi
       - name: Save radar state
         if: always()
         uses: actions/cache/save@v4

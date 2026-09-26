@@ -11,7 +11,7 @@ Design: `docs/superpowers/specs/2026-09-26-viral-content-radar-design.md`
    - `SMTP_USER`: the sender Gmail address
    - `SMTP_APP_PASSWORD`: the app password
    - `ALERT_TO`: recipient addresses, comma-separated
-3. **Start.** In the Actions tab, enable workflows, then run `radar` and `digest` once with "Run workflow". After that they run on schedule. HOT alerts start 24 hours after the first run, once the radar has some history.
+3. **Start.** In the Actions tab, enable workflows, then run `radar` and `digest` once with "Run workflow". After that they run on schedule. HOT alerts start 24 hours after the first run, once the radar has some history. Until the three secrets exist, both workflows run in dry-run mode: the radar keeps building its history but sends nothing, and each run shows a warning. Adding the secrets switches them to real emails with no other change.
 4. **Phone alerts.** In the founder's Gmail, create a filter for mail from the sender address: "Never send it to Spam" and "Always mark it as important". With the Gmail app set to notify for important mail, HOT alerts arrive as push notifications.
 
 ## Local use

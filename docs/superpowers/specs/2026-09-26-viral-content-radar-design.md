@@ -476,6 +476,7 @@ The rules are refined against fixtures during implementation. For each angle typ
   - Same concurrency group and cache restore/save; runs `python -m radar digest`.
   - `permissions: actions: write`. On day 1 of each month it runs `gh workflow enable radar.yml` and `gh workflow enable digest.yml`, so GitHub's 60-day inactivity auto-disable for scheduled workflows in public repos never triggers.
 - **ci.yml:** on push and pull_request, run `pytest`.
+- **Before email is configured:** if `SMTP_USER` is empty, radar.yml and digest.yml run with `--dry-run` and post a warning annotation. The radar keeps building history and nothing fails; adding the secrets switches to real email.
 
 ### Secrets and logging
 
