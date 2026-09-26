@@ -59,49 +59,53 @@ GitHub Actions, cron 02:30 UTC (08:00 IST)
 radar/
   __main__.py        CLI: run [--dry-run] | digest [--dry-run]
   config.py          load and validate YAML config
-  models.py          Signal, Topic, Angle, Brief dataclasses
+  models.py          Signal, Topic, Angle, TopicScore, Brief dataclasses
   http.py            shared httpx client: 10 s timeout, 1 retry, browser User-Agent
-  store.py           SQLite schema, queries, pruning
-  timeutil.py        UTC/IST helpers (IST is a fixed UTC+05:30 offset; India has no DST)
+  rss.py             stdlib RSS/Atom parser tolerant of the feeds' date quirks
+  text.py            text cleaning, title normalisation, hashing, slugs
+  timeutil.py        UTC/IST helpers and date parsing (IST is a fixed UTC+05:30 offset; India has no DST)
+  store.py           SQLite schema, shared tables (items, kv, source health), pruning
   collectors/
-    __init__.py      registry; runs collectors concurrently with per-collector isolation
+    __init__.py      Context, run_all (concurrent, isolated), gather (tolerates partial failure)
     google_trends.py
     google_news.py
     news_feeds.py
     regulators.py
     x_trends.py
-    youtube.py
+    youtube.py       channel RSS fetch, plus video storage and outlier scoring
     reddit.py
     markets.py
   events.py          events.yaml -> upcoming events (digest only)
   matcher.py         text -> topic ids
   phrases.py         n-grams, burst detection, emerging topics
   scorer.py          values, baselines, heat, stage, alert decisions
-  hooks.py           video title -> angle type (format scoreboard)
+  hooks.py           video title -> angle type; format scoreboard
   briefs.py          assemble Brief objects
+  digest.py          assemble the daily digest data
   emailer.py         render (Jinja2) and send (SMTP), or write out/*.html
+  pipeline.py        one radar run and the digest, wiring the modules together
   templates/         hot.html, hot.txt, digest.html, digest.txt
 config/
   settings.yaml      thresholds, weights, priors, caps, cooldowns
-  topics.yaml        ~47 topics
+  topics.yaml        47 topics
   angles.yaml        15 angle types
   sources.yaml       feeds, Google News queries, subreddits, tickers and thresholds
-  channels.yaml      ~100 Indian finance YouTube creators
+  channels.yaml      91 Indian finance YouTube channels
   events.yaml        dated events
 tests/
-  fixtures/          saved real responses (RSS, HTML, JSON)
+  fixtures/          small RSS/HTML/JSON samples copied from the real formats
   test_*.py
 .github/workflows/   radar.yml, digest.yml, ci.yml
-requirements.txt     httpx, feedparser, selectolax, PyYAML, Jinja2
+requirements.txt     httpx, selectolax, PyYAML, Jinja2
 requirements-dev.txt pytest
-README.md, .gitignore
+README.md, .gitignore, .gitattributes, pytest.ini
 ```
 
 ### Unit boundaries
 
 | Unit | Does | Depends on |
 |---|---|---|
-| collectors/* | Fetch one source, return `list[Signal]` | http, config, store (rotation state, last-fetch times) |
+| collectors/* | Fetch one source, return `list[Signal]` | http, config (run index passed in `ctx`; collectors never touch the database) |
 | matcher | Map text to topic ids | topics.yaml |
 | phrases | Count phrases, find bursts, create or refresh emerging topics | store, matcher |
 | scorer | Compute topic values, heat, stage; decide alerts | store, settings |
@@ -109,7 +113,7 @@ README.md, .gitignore
 | briefs | Build a Brief for a topic | store, angles.yaml, hooks |
 | emailer | Render and deliver HOT and digest emails | templates, SMTP |
 
-Every collector module exposes a pure `parse(raw, ...) -> list[Signal]` function (tested against fixtures) and `collect(ctx) -> list[Signal]`, which fetches and then calls `parse`. `ctx` carries the HTTP client, config, store, current UTC time and run index.
+Every collector module exposes a pure `parse(raw, ...) -> list[Signal]` function (tested against fixtures) and `collect(ctx) -> list[Signal]`, which fetches and then calls `parse`. `ctx` carries the HTTP client, config, current UTC time and run index. All database writes happen in the main thread after collection, because SQLite connections are not shared across threads.
 
 ## 6. Data model
 
@@ -118,45 +122,47 @@ Every collector module exposes a pure `parse(raw, ...) -> list[Signal]` function
 class Signal:
     source: str            # collector id, e.g. "google_news", "trends24", "youtube"
     source_type: str       # news | search_trend | x_trend | video | forum | market | regulator
-    feed: str              # outlet/feed id, e.g. "et_markets", "gn:tax", "r/IndiaInvestments"
+    feed: str              # outlet/feed id, e.g. "et_markets", "gn:the-economic-times", "r/IndiaInvestments", "yt:<channel id>"
     title: str
     url: str | None
     published_at: datetime | None   # UTC
     text: str = ""         # summary/description used for matching
     lang: str = "en"       # en | hi
     metrics: dict[str, float] = field(default_factory=dict)
+    key: str = ""          # natural id from the source: video id, Reddit post id, market event key
+    topic_hint: str = ""   # topic the collector already knows (market moves)
 ```
 
-Metrics by source type: `search_trend` {approx_traffic}; `x_trend` {rank}; `video` {views, outlier, age_h, is_short}; `forum` {rising_rank}; `market` {pct_move}.
+Metrics by source type: `search_trend` {approx_traffic}; `x_trend` {rank}; `video` {views, is_short, outlier, age_h}; `forum` {rising_rank}; `market` {pct_move, threshold}.
 
-**Item identity:** news items use `sha1("news" + normalized title)`, where normalization lowercases, strips a trailing " - Source" suffix and collapses whitespace. This dedupes the same headline arriving from Google News and a direct feed. Videos use the YouTube video id. Everything else uses `sha1(url)`. Google Trends and X trend entries use `sha1(source + title + IST hour)`, so each appearance counts once per hour.
+**Item identity:** news items use `sha1("news", normalized title)`. Normalization strips HTML and emoji, lowercases and collapses whitespace, and the Google News collector strips the exact " - <outlet>" suffix, so the same headline from Google News and a direct feed dedupes. Videos use `yt:<video id>`. Google Trends and X trend entries use `sha1(source_type, normalized title)`; their `last_seen_at` shows whether they are still trending. Market events use `sha1("market", symbol:direction:trading date)`, which also enforces one event per symbol, direction and day. Everything else uses `sha1(source_type, key or url or title)`.
 
 ### SQLite tables (timestamps are ISO-8601 UTC)
 
 | Table | Purpose | Retention |
 |---|---|---|
-| `items(id PK, source, source_type, feed, title, url, published_at, first_seen_at, lang, metrics_json)` | Dedupe and evidence links | 3 days |
+| `items(id PK, source, source_type, feed, title, url, published_at, first_seen_at, last_seen_at, lang, text, metrics_json)` | Dedupe, evidence links, phrase window | 3 days after last seen |
 | `item_topics(item_id, topic_id, PK(item_id, topic_id))` | Item-to-topic mapping | With items |
-| `videos(video_id PK, channel_id, title, published_at, duration_s, is_short, views, checked_at, outlier)` | Tracked YouTube videos | 30 days |
-| `channel_baselines(channel_id, fmt, median_views, updated_at, PK(channel_id, fmt))` | Creator normals per format | Refreshed daily |
+| `videos(video_id PK, channel_id, channel_name, title, url, published_at, is_short, views, first_seen_at, last_seen_at, outlier, hook_type)` | YouTube videos with latest RSS views; source of creator baselines and the format scoreboard | 30 days |
 | `runs(run_at PK, ist_hour)` | Every completed run, for implicit-zero baselines | 8 days |
 | `topic_values(run_at, topic_id, source_type, value, PK(run_at, topic_id, source_type))` | Non-zero per-run values | 8 days |
 | `topic_heat(run_at, topic_id, heat, stage, n_sources, PK(run_at, topic_id))` | Heat history (rows only when heat > 0) | 8 days |
 | `episodes(topic_id PK, started_at, below_watch_runs)` | Current episode per topic | Deleted when the episode ends |
 | `alerts(id PK, topic_id, kind, sent_at, heat, subject)` | kind = `hot` or `capped`; cooldown, daily cap, digest | 30 days |
-| `phrase_counts(hour, phrase, items, feeds, PK(hour, phrase))` | Hourly phrase frequency; only phrases with 2+ items in the hour | 8 days |
-| `emerging_topics(topic_id PK, phrase, bucket, created_at, last_seen_at)` | Auto-created topics | 48 h after last_seen |
+| `phrase_counts(hour, phrase, items, PK(hour, phrase))` | Phrase frequency per IST hour of publication; singletons pruned after 3 h | 8 days |
+| `emerging_topics(topic_id PK, phrase, name, bucket, created_at, last_seen_at)` | Auto-created topics | 48 h after last_seen |
 | `source_health(source PK, last_ok_at, last_error_at, last_error, consecutive_failures)` | Digest health section | Kept |
-| `kv(key PK, value)` | Run index, last-fetch times, market event dedupe keys, YouTube quota counter | Kept |
+| `kv(key PK, value)` | Run index, X-mirror last fetch, last digest | Kept |
 
 Expected database size: under 20 MB.
 
 ## 7. Collectors
 
 **Common rules**
-- All HTTP goes through the shared client: 10 s timeout, one retry after 2 s on timeout, connection error or 5xx, browser-like User-Agent, UTF-8 decoding.
+- All HTTP goes through the shared client: 10 s timeout (5 s to connect), one retry after 2 s on timeout, connection error or 5xx, browser-like User-Agent, UTF-8 decoding.
+- **Circuit breaker:** a collector that failed in 3 or more consecutive runs is retried at most once an hour, so an unreachable source cannot slow every run.
 - A collector exception is caught by the registry, logged (collector id and error class only), recorded in `source_health`, and the run continues.
-- Items published more than 24 h ago are ignored, except YouTube videos, which are tracked for 7 days.
+- Items published more than 24 h ago are ignored, except YouTube videos, which are tracked for 72 hours (and kept 30 days for baselines).
 - Collectors run concurrently in a thread pool (max 8 workers). Target run time is under 2 minutes.
 
 | Collector | Endpoint | Cadence | Emits |
@@ -166,7 +172,7 @@ Expected database size: under 20 MB.
 | news_feeds | 12 finance-section RSS feeds (below) | Every run | `news` |
 | regulators | `https://rbi.org.in/pressreleases_rss.xml`, `https://www.sebi.gov.in/sebirss.xml` | Every run | `regulator` for items not seen before |
 | x_trends | `https://trends24.in/india/`; fallback `https://getdaytrends.com/india/` | When 55+ min since last success | `x_trend` for the current top 50 with rank |
-| youtube | Channel RSS `https://www.youtube.com/feeds/videos.xml?channel_id=<id>`; YouTube Data API `videos.list` | Every run | `video` for tracked videos up to 7 days old |
+| youtube | Channel RSS `https://www.youtube.com/feeds/videos.xml?channel_id=<id>` (no API key) | Every run, one third of channels | `video` for videos up to 72 h old, with views and outlier score |
 | reddit | `https://www.reddit.com/r/<sub>/rising/.rss` | Every run, best-effort | `forum` with `rising_rank` |
 | markets | `https://query1.finance.yahoo.com/v8/finance/chart/<symbol>?interval=5m&range=1d` | Every run | `market` when a move crosses its threshold |
 
@@ -183,6 +189,8 @@ Expected database size: under 20 MB.
 9. `site:moneycontrol.com` (Moneycontrol's own RSS has been frozen since April 2024)
 10. Hindi: `शेयर बाजार OR सेंसेक्स OR निफ्टी OR आईपीओ`
 11. Hindi: `म्यूचुअल फंड OR आयकर OR आरबीआई OR सोना`
+
+Google News mixes foreign outlets into the India edition (a live test on 2026-09-26 returned Motley Fool, a Thai IPO story and BBC Pidgin). Results are kept only from `.in` domains, domains containing "india" (indiatimes.com, indianexpress.com, ...) and an allowlist of Indian outlets in `sources.yaml`.
 
 ### news_feeds (sources.yaml)
 
@@ -203,7 +211,7 @@ Expected database size: under 20 MB.
 
 ### regulators
 
-Only items not already in `items` and published within 24 h become signals. A regulator item affects scoring only if the matcher maps it to a topic; routine unmatched releases (for example, penalties on co-operative banks) are stored but ignored.
+Only items published today or yesterday (IST) become signals; SEBI dates carry no time of day. A regulator item affects scoring only if the matcher maps it to a topic; routine unmatched releases (for example, penalties on co-operative banks) are stored but ignored.
 
 ### x_trends
 
@@ -211,14 +219,14 @@ Parses the most recent hourly list (top 50, in rank order). If trends24 fails or
 
 ### youtube
 
-- `channels.yaml` entries: `{id, name, lang}`. It is seeded with about 100 Indian personal-finance and markets creators, each verified by fetching its RSS during implementation.
-- **Rotation:** channels are split into 3 groups by position in the file; run N fetches group `N % 3`, so each channel's RSS is checked every 45 minutes.
-- New videos from RSS published within 7 days are added to `videos`.
-- **Every run:** `videos.list` (part=snippet,statistics,contentDetails; 50 ids per call) refreshes views and duration for all tracked videos. `is_short` = duration of 180 s or less.
-- **Baselines:** once per day per channel. Median views of the channel's RSS videos older than 3 days, computed separately for shorts and long videos. If a format has fewer than 3 such videos, use the channel's all-format median. If the channel has fewer than 3 in total, it gets no outlier score.
-- **Outlier score** = `views / (median_views * f(age_h))`, where `f(age_h) = clamp(sqrt(age_h / 72), 0.15, 1.0)`. This is a heuristic and is tunable in settings.
-- **Quota:** at most 30 `videos.list` calls per run, typically about 1,500 units/day. A daily counter in `kv` stops API calls at 8,000 units (the free quota is 10,000).
-- If `YOUTUBE_API_KEY` is missing, the collector is disabled and the rest of the radar still works.
+- `channels.yaml` entries: `{id, name}`. Seeded with 91 Indian finance channels (creators, education channels and business news), each verified during planning by resolving its handle and fetching its RSS. Corporate fund-house and insurer channels are excluded because ad-boosted views would look like viral spikes.
+- **No API key.** The RSS feed carries each video's view count (`media:statistics views`, measured within about 5% of the live count) and marks Shorts with a `/shorts/` link.
+- **Rotation:** channels are split into 3 groups by position in the file; run N fetches group `N % 3`, so each channel's RSS is checked every 45 minutes. RSS lists the latest 15 videos per channel.
+- Every fetched video is upserted into `videos` (latest views, `last_seen_at`).
+- **Tracking:** videos up to 72 h old, at most the 20 most recent per channel, get an outlier score each time their channel is fetched.
+- **Baseline:** for each channel, every stored video last seen at age 6 h or more contributes a projected 72-hour view count, `views / f(age at last sight)`. The baseline is the median of the samples in the same format (Short or long) if there are at least 3, otherwise the median of all samples if there are at least 3, otherwise none (no score). The video being scored is excluded from its own baseline.
+- **Outlier score** = `views / (baseline * f(age_h))`, where `f(age_h) = clamp(sqrt(age_h / 72), 0.15, 1.0)`. This is a heuristic and is tunable in settings.
+- Each scored video also gets a `hook_type` from `hooks.classify` for the format scoreboard.
 
 ### reddit
 
@@ -236,7 +244,7 @@ Initial subreddits: IndiaInvestments, personalfinanceindia, IndianStockMarket, I
 | `INR=X` | USD/INR | ±0.5% | rupee_forex |
 | `^GSPC` | S&P 500 | ±2.0% | us_fed_global |
 
-`pct_move = (regularMarketPrice - chartPreviousClose) / chartPreviousClose * 100`. A signal is emitted only if `regularMarketTime` is within the last 30 minutes (fresh session data), and at most once per symbol, direction and trading date (dedupe key in `kv`). Example title: "Nifty 50 down 2.1% today".
+`pct_move = (regularMarketPrice - chartPreviousClose) / chartPreviousClose * 100`. A signal is emitted only if `regularMarketTime` is within the last 30 minutes (fresh session data), and at most once per symbol, direction and trading date (enforced by the item id). Example title: "Nifty 50 down 2.1% today".
 
 ### events (digest only)
 
@@ -283,17 +291,17 @@ Events never change heat.
 
 ## 9. New-phrase spike detection
 
-**Input:** titles of items first seen in this run: news, videos, forum posts, regulator items, plus Google Trends and X trend entries (hourly identity, section 6).
+**Input:** titles of items first seen in this run (news, videos, forum posts, regulator items, Google Trends and X trend entries) for counting, and titles of all items published in the last 2 h for detection. Market items are excluded.
 
 1. **Tokenize:** lowercase Latin text and keep Devanagari tokens. Split on punctuation, but keep `&` inside tokens (F&O). Drop pure numbers and 1-character tokens.
 2. **Chunk:** split each title at stopwords (English stopwords plus boilerplate: live, updates, today, latest, news, check, know, here, why, what, how, says, said, will, may, top, day, week, amid, after, over, you, your, this, that, big, more, than).
-3. **N-grams:** build 2-3 word phrases within each chunk. Also add whole Google Trends titles and X trend names (including hashtags) as phrases. Ignore phrases shorter than 5 characters and phrases on the settings blocklist (for example "share price", "stock market today", "sensex today", "top gainers", "top losers", "market live").
-4. **Count:** add this run's per-phrase item and distinct-feed counts to `phrase_counts` for the current IST hour.
-5. **Burst ratio:** `c2h` = items containing the phrase in the current and previous hour buckets. `baseline = max(7-day hourly average, same-IST-hour average over the previous 7 days, 0.25)`. `ratio = (c2h / 2) / baseline`. The same-hour term suppresses phrases that recur daily, such as market-open headlines.
+3. **N-grams:** build 2-3 word phrases within each chunk. Also add whole Google Trends titles and X trend names (including hashtags) as phrases. Ignore phrases shorter than 5 characters and phrases containing any settings blocklist entry: daily boilerplate and routine company filings, for example "share price", "stock market today", "top gainers", "trading window", "board meeting".
+4. **Count:** for each new item, add 1 to `phrase_counts` for each of its phrases, in the IST hour it was published (first seen, when undated). Singleton rows older than 3 h are pruned.
+5. **Burst ratio:** `c2h` = items published in the last 2 h whose title contains the phrase (computed from `items`). The baseline counts come from the 7 days before that window. `baseline = max(7-day hourly average, same-IST-hour average over the previous 7 days, 0.25)`. `ratio = (c2h / 2) / baseline`. The same-hour term suppresses phrases that recur daily, such as market-open headlines.
 6. **Emerging if** `ratio >= 4`, `c2h >= 3`, the items span 2 or more distinct feeds, and the phrase has **finance context**. Finance context means at least 50% of its items come from finance-only sources (news_feeds, google_news, youtube, reddit, regulators), or at least 50% contain a `finance_vocab` word.
 7. **Subsumption:** if 80% or more of a shorter phrase's items also contain a longer phrase, keep only the longer one. If two phrases share 80% or more of their items, keep the one with more items.
 8. **Mapping:** if 60% or more of the phrase's items match a single topic, the phrase is attached to that topic and shown in its brief as a spiking phrase. Otherwise it creates or refreshes the emerging topic `emerging:<slug>`:
-   - name: the phrase in title case;
+   - name: the phrase as capitalised in the first matching headline;
    - bucket: the most common bucket among its items' matched topics (default markets);
    - angles: the default emerging set (hot_take_news, explainer, timeline, myth_bust, faq).
 9. Emerging topics are scored like static topics. Their items are those whose normalized title contains the phrase. They use a news prior of μ0 = 0.5, σ0 = 1.0 and expire 48 h after last activity.
@@ -321,7 +329,9 @@ Samples are the topic's values over the previous 7 days from runs whose IST hour
 - `sigma_eff = max(sigma, floor)`
 - `z = (value - mu) / sigma_eff` if `value >= min_value`, else 0
 
-where `P = 48`. The priors mean that with no history the radar behaves as if it had fixed thresholds. This is the warm-up mechanism.
+where `P = 4`, so real history outweighs the priors within a day; with no history at all the priors act as fixed thresholds.
+
+**Warm-up:** HOT alerts are held back for the first 24 hours after the very first run. A live test showed why: on day one, busy topics (Nifty moves, IPOs, retirement) look unusual against the priors and would all alert. Topics are still scored during warm-up and appear in the digest.
 
 | Source | mu0 | sigma0 | floor | min_value | weight |
 |---|---|---|---|---|---|
@@ -469,7 +479,7 @@ The rules are refined against fixtures during implementation. For each angle typ
 
 ### Secrets and logging
 
-- Repository secrets: `YOUTUBE_API_KEY` (restricted to YouTube Data API v3 in Google Cloud), `SMTP_USER`, `SMTP_APP_PASSWORD`, `ALERT_TO`. They are passed only to the steps that need them.
+- Repository secrets: `SMTP_USER`, `SMTP_APP_PASSWORD`, `ALERT_TO`. They are passed only to the steps that need them. No other credentials are needed.
 - Workflow logs are public. Log counts, topic ids and source health only. Never print secrets, recipients or email bodies.
 
 ### State
@@ -481,8 +491,9 @@ The rules are refined against fixtures during implementation. For each angle typ
 | Failure | Behaviour |
 |---|---|
 | One collector errors or times out | Logged, `source_health` updated, run continues |
-| Reddit 429 | Reddit skipped for the rest of the run |
-| YouTube key missing or quota counter reached | YouTube API calls skipped; RSS-only data not scored |
+| A collector fails 3 runs in a row | Retried at most once an hour (circuit breaker) |
+| Reddit 429 or connection failure | Reddit skipped for the rest of the run |
+| One YouTube channel's RSS fails | That channel is skipped until its next rotation; the rest continue |
 | Malformed item | Item skipped and counted in logs |
 | All collectors fail in one run | Run exits non-zero; GitHub emails the repo owner |
 | HOT email send fails twice | Alert not recorded (retried next run); run exits non-zero |
@@ -492,7 +503,7 @@ The rules are refined against fixtures during implementation. For each angle typ
 ## 14. Testing
 
 - **Framework:** pytest. Tests never touch the network.
-- **Parser tests:** each collector's `parse` is tested against real responses saved during implementation: `google_trends_in.xml`, `google_news_markets.xml`, `et_markets.xml`, `trends24_india.html`, `getdaytrends_india.html`, `youtube_channel.xml`, `youtube_videos_list.json`, `reddit_rising.xml`, `yahoo_chart_nsei.json`, `rbi_press.xml`, `sebi.xml`.
+- **Parser tests:** each collector's `parse` is tested against small fixtures copied from the real formats sampled on 2026-09-26: `google_trends_in.xml`, `google_news.xml`, `news_feed.xml`, `sebi.xml`, `trends24_india.html`, `getdaytrends_india.html`, `youtube_channel.xml`, `reddit_rising.xml`, `yahoo_chart.json`. Live endpoints are exercised by the acceptance run, not by unit tests.
 - **Unit tests:**
   - matcher: word boundaries, the ALL-CAPS rule, Devanagari, multiple topics.
   - phrases: tokenize, chunk, burst ratio, same-hour baseline, finance context, subsumption, mapping to topic vs emerging.
@@ -521,7 +532,7 @@ The rules are refined against fixtures during implementation. For each angle typ
 ## 16. References (research of 2026-09-26)
 
 - Google Trends RSS: https://trends.google.com/trending/rss?geo=IN
-- YouTube quota costs: https://developers.google.com/youtube/v3/determine_quota_cost ; revision history: https://developers.google.com/youtube/v3/revision_history
+- YouTube channel RSS (example): https://www.youtube.com/feeds/videos.xml?channel_id=UCe3qdG0A_gr-sEdat5y2twQ
 - X API pricing (pay-per-use): https://docs.x.com/x-api/getting-started/pricing
 - Reddit unauthenticated JSON blocked, RSS working: https://dev.to/listwright/reddits-json-returns-403-in-2026-the-rss-feeds-still-answer-1gg5
 - LinkedIn scraping litigation (Proxycurl): https://www.socialmediatoday.com/news/linkedin-wins-legal-case-data-scrapers-proxycurl/756101/
