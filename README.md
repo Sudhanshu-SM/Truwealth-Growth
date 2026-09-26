@@ -34,3 +34,12 @@ python -m radar digest --dry-run --db local.db
 - YouTube channels: `config/channels.yaml` (the `id` is the channel id that starts with `UC`)
 - Dated events for the digest: `config/events.yaml`
 - Feeds and queries: `config/sources.yaml`
+
+## Ghostwriter handoff (optional)
+
+Each HOT or capped decision can also go to the LinkedIn ghostwriter (private repository Truwealth-Ghostwriter) as one row in the "Truwealth Topics inbox" Google Sheet. Add two Actions secrets:
+
+- `INBOX_SHEET_ID`: the inbox sheet's id (the long part of its URL)
+- `INBOX_SA_JSON`: the JSON key of the `radar-inbox` service account, which is an Editor of that sheet only
+
+Without them the radar behaves exactly as before. Handoff errors are logged and never fail a run.
