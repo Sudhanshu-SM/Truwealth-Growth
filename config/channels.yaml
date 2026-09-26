@@ -1,0 +1,94 @@
+# YouTube channels watched by the radar. Verified 2026-09-26 (handle -> channel id -> RSS).
+# Rotation splits this list into 3 groups by position, so order matters only for spreading load.
+channels:
+  - {id: "UCe3qdG0A_gr-sEdat5y2twQ", name: "CA Rachana Phadke Ranade"}
+  - {id: "UCD-qZSqFPqyx43L6gAR8qfQ", name: "CA Rachana Ranade (Hindi)"}
+  - {id: "UCwAdQUuPT6laN-AQR17fe1g", name: "Pranjal Kamra"}
+  - {id: "UCVOTBwF0vnSxMRIbfSE_K_g", name: "Labour Law Advisor"}
+  - {id: "UCRzYN32xtBf3Yxsx5BvJWJw", name: "warikoo"}
+  - {id: "UCsNxHPbaCWL1tKw2hxGQD6g", name: "Asset Yogi"}
+  - {id: "UCwVEhEzsjLym_u1he4XWFkg", name: "Finance With Sharan"}
+  - {id: "UCBI57iTXtmJoaI6Ht7MgcfA", name: "1% Club"}
+  - {id: "UCtnItzU7q_bA1eoEBjqcVrw", name: "Shankar Nath"}
+  - {id: "UCqW8jxh4tH1Z1sWPbkGWL4g", name: "Akshat Shrivastava"}
+  - {id: "UCzUgCORf79EjqlNHmGRHFkA", name: "Neha Nagar"}
+  - {id: "UCt22CG7b9crZ0HDk1eTiJjA", name: "Neeraj Arora"}
+  - {id: "UCTR1Tk8SaMO9qw930kIOMHQ", name: "Sagar Sinha"}
+  - {id: "UCUMccND2H_CVS0dMZKCPCXA", name: "FinnovationZ by Prasad"}
+  - {id: "UC2Nwwobsd0ctkzVieXZvyQA", name: "Ankit Inspires India"}
+  - {id: "UCBqvATpjSubtNxpqUDj4_cA", name: "Anshuman Sharma"}
+  - {id: "UC2MU9phoTYy5sigZCkrvwiw", name: "Rahul Jain"}
+  - {id: "UCc6CmEbFkEIHJKzZYCshKEQ", name: "Rahul Jain - Hindi"}
+  - {id: "UCSGTyCSQ50UUs1WkhfVbTZw", name: "Gurleen Kaur Tikku"}
+  - {id: "UCsUNye3mMDmKjY7IlaqeukA", name: "Hindi Financial Education"}
+  - {id: "UCmfl6VteCu880D8Txl4vEag", name: "Finance Boosan"}
+  - {id: "UC7fQFl37yAOaPaoxQm-TqSA", name: "Money Pechu"}
+  - {id: "UCkGjGT2B7LoDyL2T4pHsUqw", name: "Financially Free"}
+  - {id: "UCRGMAIJlkL76zuzm5Z2l5kQ", name: "Money talks by Financially Free"}
+  - {id: "UCf5H6aT6NzCQES8OJIhciTw", name: "freefincal"}
+  - {id: "UCHXTbd8Av-HR3Yng65dfCZg", name: "CA Manoj Kumar Jain"}
+  - {id: "UC-7YSvQqVPTR9quCJt0sZfA", name: "Tax Filing School"}
+  - {id: "UCXn42NJPHDxbVrDCkUtBgBA", name: "Insurance Technical"}
+  - {id: "UCyKj-yaTpbnWZY90ajxB8WQ", name: "Ditto Insurance"}
+  - {id: "UCH7NDZ5HubXj4ygU_IYT4AQ", name: "Beshak Insurance"}
+  - {id: "UC5Fx1wCcJq_lVhE6PYIDdUA", name: "Card Academy"}
+  - {id: "UCK5A-hCfIug_cnLlYmNwDzA", name: "The Great Indian Points & Miles Show"}
+  - {id: "UCa8MSxsDY8kaSasMB5GW6wQ", name: "The Mutual Fund Talk"}
+  - {id: "UCg-0FHRCR2ziLX72abJYbIA", name: "The Money Podcast"}
+  - {id: "UCPI-DJWmId3Y-Dd1yI8LDnw", name: "WTFinance"}
+  - {id: "UCzwCEE_PchiBULMnAJqhGVg", name: "Raj Shamani"}
+  - {id: "UCKZozRVHRYsYHGEyNKuhhdA", name: "Think School"}
+  - {id: "UC6WzPg6yxF9dQx2_O6R4lww", name: "Nitish Rajput"}
+  - {id: "UCM9JulVK4nShhpiMWlEuIGA", name: "Capitalmind"}
+  - {id: "UCB7GnQlJPIL6rBBqEoX87vA", name: "SOIC"}
+  - {id: "UCvqttS8EzhRq2YWg03qKRCQ", name: "Sanjay Kathuria"}
+  - {id: "UCMec1m9iUC3agiEK-nsndSg", name: "Elearnmarkets Face2Face"}
+  - {id: "UCmkNoDHBfKzPnXWTNoYQc7A", name: "StockEdge"}
+  - {id: "UCBnG19e3YPT3OTMY7uFfu7A", name: "Vivek Bajaj"}
+  - {id: "UCzw35O6toJtjqEAAt4LTjKQ", name: "Trade Brains"}
+  - {id: "UCS8WLwuVszq1g2oeBzboUmQ", name: "Sunil Minglani"}
+  - {id: "UCcanCrgSWVYW7ZFNKQZso0g", name: "Abhishek Kar"}
+  - {id: "UCS2NdYUmv_PUyyKeDAo5zYA", name: "P R Sundar"}
+  - {id: "UCZ56bfzgD7hIYGZ2k5SEtbA", name: "Vibhor Varshney"}
+  - {id: "UCEAAzv2OBqxsSczKJ2QZyGQ", name: "Pushkar Raj Thakur"}
+  - {id: "UCfYHvYyFICHwHVO9lHwmiig", name: "Neeraj joshi"}
+  - {id: "UC_ldc-Mg7o9KlLWu4TDOZ0Q", name: "GTF - A Stock Market Institute"}
+  - {id: "UCE5wDMNEZElnuRDk6TDPOYg", name: "Power of Stocks"}
+  - {id: "UChneGqGy_lmvfcR1v_avL6g", name: "Stock Market ka Commando"}
+  - {id: "UCN3DuDf9Abnksfkh8aXyLcw", name: "Art of Option Learning"}
+  - {id: "UCCW6WdKJfqFUfoio0Lr0iHw", name: "Trading Cafe India"}
+  - {id: "UCg3LNMpW2sgZc3nthsbsfzQ", name: "Stock Learners"}
+  - {id: "UCY3cHUi4DFx-DyGBlH-tVjw", name: "Stock Market Classes"}
+  - {id: "UC8AhWQSB09yTlNVp6Y4aACw", name: "Mahesh Chander Kaushik"}
+  - {id: "UCf6PIMsGE2g0rSRbMSlA2oQ", name: "Learning Markets With Manish"}
+  - {id: "UCUgUjyt6jcyxfM4FCmxZcgw", name: "Trading Chanakya"}
+  - {id: "UCQIRijkQ8zNDe_jR0RhZpVA", name: "Stock Pro"}
+  - {id: "UCZSgm98OLObgY3D7sn7z2Wg", name: "Be Sensibull"}
+  - {id: "UCa3qap3VLxCwQjyxbS6s5OA", name: "Knowledge Jazz"}
+  - {id: "UCbOkZlwRtOP3EGGAYd-Zi1Q", name: "IFMC Stock Market Institute"}
+  - {id: "UCCLu5B_Ctsw4N20DJvDykOA", name: "Stock Market INDIA"}
+  - {id: "UCM7yoOhnMcfrEZ-5i9m-WFA", name: "Sonia Shenoy"}
+  - {id: "UC59YUBhNLMkS2Q8NBWBGHAA", name: "Zerodha"}
+  - {id: "UCXbKJML9pVclFHLFzpvBgWw", name: "Markets by Zerodha"}
+  - {id: "UCorKX0CAjQh0SnflWPnnI9w", name: "Markets by Zerodha Hindi"}
+  - {id: "UCQXwgooTlP6tk2a-u6vgyUA", name: "Zerodha Varsity"}
+  - {id: "UCw5TLrz3qADabwezTEcOmgQ", name: "Groww"}
+  - {id: "UCbWW7i7KnwQfqp6HFg1diFw", name: "Mutual Funds with Groww"}
+  - {id: "UCuA2G-T1WmPRCHwDb713pVQ", name: "Moneytalks by Groww"}
+  - {id: "UCAQpvfptgfkFuFJI2_fmveA", name: "IPO Review by Groww"}
+  - {id: "UCxv9T8da7658T9R8LQT_3PQ", name: "ET Money"}
+  - {id: "UChftTVI0QJmyXkajQYt2tiQ", name: "moneycontrol"}
+  - {id: "UCnhUiJ_-DRTP6w51LCQgJRQ", name: "MoneyControl Hindi"}
+  - {id: "UCQIycDaLsBpMKjOCeaKUYVg", name: "CNBC Awaaz"}
+  - {id: "UCmRbHAgG2k2vDUvb3xsEunQ", name: "CNBC-TV18"}
+  - {id: "UCkXopQ3ubd-rnXnStZqCl2w", name: "Zee Business"}
+  - {id: "UCI_mwTKUhicNzFrhm33MzBQ", name: "ET Now"}
+  - {id: "UCD3CdwT8lTCe5ZGHbUBxmWA", name: "ET Now Swadesh"}
+  - {id: "UC3uJIdRFTGgLWrUziaHbzrg", name: "NDTV Profit"}
+  - {id: "UCaPHWiExfUWaKsUtENLCv5w", name: "Business Today"}
+  - {id: "UCJFOER35ggIWwsXh2ZDnqyg", name: "The Economic Times"}
+  - {id: "UCUI9vm69ZbAqRK3q3vKLWCQ", name: "Mint"}
+  - {id: "UCQsob4fGjHWhYHW0OLb6rew", name: "Business Standard"}
+  - {id: "UCmk6ZFMy1CT80orXca4tKew", name: "The Financial Express"}
+  - {id: "UCSWSOS6YXUbNMzTH-tV7Pfw", name: "Biz Tak"}
+  - {id: "UCKncvlaA3gRyWESh08Bo6lA", name: "Paisa LIVE"}

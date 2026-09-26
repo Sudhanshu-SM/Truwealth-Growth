@@ -1,0 +1,252 @@
+# Finance topics the radar scores. Matching rules (spec section 8):
+# - keywords match whole words, case-insensitively;
+# - ALL-CAPS keywords of 4 characters or fewer (SIP, UPI, F&O) match case-sensitively;
+# - Devanagari keywords match as substrings.
+# angles must be ids from angles.yaml, in order of preference.
+
+topics:
+  # Personal finance
+  - id: sip_mutual_funds
+    name: "Mutual funds & SIPs"
+    bucket: personal_finance
+    keywords: ["mutual fund", "mutual funds", "SIP", "SIPs", "systematic investment plan", "NFO", "index fund", "index funds", "ELSS", "AMFI", "NAV", "flexi cap fund", "small cap fund", "mid cap fund", "large cap fund", "म्यूचुअल फंड", "एसआईपी"]
+    angles: [myth_bust, mistakes_list, data_compare, what_if_calculator, should_you, explainer, checklist, contrarian_take]
+  - id: income_tax
+    name: "Income tax & regimes"
+    bucket: personal_finance
+    keywords: ["income tax", "tax regime", "new regime", "old regime", "tax slab", "tax slabs", "80C", "80D", "standard deduction", "87A", "tax rebate", "TDS", "tax saving", "tax-saving", "advance tax", "आयकर", "इनकम टैक्स"]
+    angles: [before_after_rule, what_if_calculator, explainer, mistakes_list, checklist, faq, myth_bust]
+  - id: itr_filing
+    name: "ITR filing & refunds"
+    bucket: personal_finance
+    keywords: ["ITR", "ITRs", "income tax return", "tax return", "tax refund", "income tax refund", "AIS", "Form 16", "Form 26AS", "e-filing", "belated return", "आईटीआर"]
+    angles: [checklist, mistakes_list, faq, explainer, red_flags, before_after_rule]
+  - id: capital_gains_tax
+    name: "Capital gains tax"
+    bucket: personal_finance
+    keywords: ["capital gains", "LTCG", "STCG", "capital gains tax", "indexation", "grandfathering", "tax harvesting"]
+    angles: [before_after_rule, what_if_calculator, explainer, myth_bust, faq]
+  - id: insurance
+    name: "Insurance"
+    bucket: personal_finance
+    keywords: ["term insurance", "health insurance", "life insurance", "insurance premium", "ULIP", "LIC", "claim settlement", "insurance claim", "IRDAI", "mediclaim", "बीमा"]
+    angles: [myth_bust, mistakes_list, red_flags, checklist, should_you, data_compare]
+  - id: loans_emi
+    name: "Loans & EMIs"
+    bucket: personal_finance
+    keywords: ["home loan", "home loans", "personal loan", "car loan", "education loan", "loan rate", "loan rates", "EMI", "EMIs", "lending rate", "MCLR", "repo-linked", "loan prepayment", "होम लोन", "लोन"]
+    angles: [what_if_calculator, should_you, mistakes_list, explainer, myth_bust]
+  - id: credit_cards
+    name: "Credit cards"
+    bucket: personal_finance
+    keywords: ["credit card", "credit cards", "reward points", "lounge access", "card devaluation", "credit card fee", "क्रेडिट कार्ड"]
+    angles: [mistakes_list, red_flags, data_compare, myth_bust, checklist]
+  - id: credit_score
+    name: "Credit score"
+    bucket: personal_finance
+    keywords: ["credit score", "CIBIL", "CIBIL score", "credit report", "credit bureau", "सिबिल"]
+    angles: [myth_bust, mistakes_list, checklist, faq]
+  - id: retirement_pension
+    name: "Retirement & pension"
+    bucket: personal_finance
+    keywords: ["NPS", "EPF", "EPFO", "PPF", "pension", "pensions", "retirement", "retire early", "FIRE", "UPS", "unified pension scheme", "gratuity", "provident fund", "पेंशन"]
+    angles: [what_if_calculator, data_compare, mistakes_list, myth_bust, should_you, checklist]
+  - id: fixed_income_savings
+    name: "FDs & small savings"
+    bucket: personal_finance
+    keywords: ["fixed deposit", "fixed deposits", "FD", "FDs", "FD rate", "FD rates", "post office scheme", "small savings", "senior citizen savings", "SCSS", "Sukanya Samriddhi", "NSC", "recurring deposit", "savings account interest"]
+    angles: [data_compare, what_if_calculator, should_you, myth_bust, explainer]
+  - id: upi_payments
+    name: "UPI & payments"
+    bucket: personal_finance
+    keywords: ["UPI", "UPI charges", "UPI limit", "NPCI", "MDR", "digital payments", "यूपीआई"]
+    angles: [before_after_rule, explainer, faq, myth_bust, hot_take_news]
+  - id: scams_fraud
+    name: "Scams & fraud"
+    bucket: personal_finance
+    keywords: ["scam", "scams", "fraud", "frauds", "ponzi", "digital arrest", "cyber fraud", "fake app", "investment scam", "phishing", "ठगी", "धोखाधड़ी", "फ्रॉड"]
+    angles: [red_flags, checklist, timeline, explainer, faq]
+  - id: salary_budgeting
+    name: "Salary & budgeting"
+    bucket: personal_finance
+    keywords: ["salary", "salaries", "salary hike", "appraisal", "budgeting", "emergency fund", "savings rate", "middle class", "50/30/20", "personal finance", "money management", "financial planning", "सैलरी"]
+    angles: [mistakes_list, what_if_calculator, checklist, contrarian_take, myth_bust, poll]
+  - id: home_buying
+    name: "Home buying"
+    bucket: personal_finance
+    keywords: ["home buying", "buy a house", "rent vs buy", "property prices", "housing prices", "home prices", "house prices", "housing sales", "RERA", "stamp duty", "real estate prices", "प्रॉपर्टी"]
+    angles: [should_you, data_compare, what_if_calculator, mistakes_list, myth_bust]
+
+  # Markets & macro
+  - id: market_moves
+    name: "Nifty & Sensex moves"
+    bucket: markets
+    keywords: ["Sensex", "Nifty", "Nifty 50", "Bank Nifty", "stock market", "share market", "Dalal Street", "market crash", "market rally", "record high", "all-time high", "selloff", "sell-off", "bloodbath", "correction", "bear market", "bull run", "India VIX", "सेंसेक्स", "निफ्टी", "शेयर बाजार"]
+    angles: [history_lesson, contrarian_take, myth_bust, data_compare, explainer, hot_take_news, poll]
+  - id: rbi_policy
+    name: "RBI policy & rates"
+    bucket: markets
+    keywords: ["RBI", "repo rate", "MPC", "monetary policy", "rate cut", "rate hike", "Reserve Bank", "CRR", "Sanjay Malhotra", "आरबीआई", "रेपो रेट"]
+    angles: [explainer, what_if_calculator, before_after_rule, hot_take_news, history_lesson, faq]
+  - id: inflation
+    name: "Inflation"
+    bucket: markets
+    keywords: ["inflation", "CPI", "WPI", "retail inflation", "food inflation", "महंगाई"]
+    angles: [explainer, what_if_calculator, data_compare, history_lesson, myth_bust]
+  - id: union_budget
+    name: "Union Budget"
+    bucket: markets
+    keywords: ["Union Budget", "Budget 2027", "Budget 2027-28", "Finance Minister", "Nirmala Sitharaman", "Sitharaman", "budget announcement", "बजट"]
+    angles: [before_after_rule, what_if_calculator, explainer, hot_take_news, faq, checklist]
+  - id: gst
+    name: "GST"
+    bucket: markets
+    keywords: ["GST", "GST council", "GST rate", "GST rates", "GST cut", "goods and services tax", "जीएसटी"]
+    angles: [before_after_rule, explainer, what_if_calculator, faq]
+  - id: gold_price
+    name: "Gold & silver prices"
+    bucket: markets
+    keywords: ["gold", "gold price", "gold prices", "gold rate", "gold rates", "silver price", "silver prices", "silver rate", "gold ETF", "sovereign gold bond", "SGB", "digital gold", "gold loan", "सोना", "सोने", "चांदी"]
+    angles: [data_compare, history_lesson, myth_bust, should_you, explainer, contrarian_take]
+  - id: rupee_forex
+    name: "Rupee & forex"
+    bucket: markets
+    keywords: ["rupee", "USD/INR", "dollar vs rupee", "forex reserves", "INR", "रुपया"]
+    angles: [explainer, what_if_calculator, history_lesson, myth_bust]
+  - id: crude_oil
+    name: "Crude oil & fuel prices"
+    bucket: markets
+    keywords: ["crude oil", "crude", "Brent", "oil prices", "petrol price", "petrol prices", "diesel price", "fuel prices", "OPEC", "कच्चा तेल", "पेट्रोल"]
+    angles: [explainer, what_if_calculator, hot_take_news, data_compare]
+  - id: us_fed_global
+    name: "US Fed & global markets"
+    bucket: markets
+    keywords: ["Federal Reserve", "US Fed", "FOMC", "Fed rate", "Fed chair", "Wall Street", "S&P 500", "Nasdaq", "Dow Jones", "US recession", "US inflation", "Treasury yields", "US tariffs"]
+    angles: [explainer, hot_take_news, history_lesson, what_if_calculator]
+  - id: tariffs_trade
+    name: "Tariffs & trade"
+    bucket: markets
+    keywords: ["tariff", "tariffs", "trade war", "trade deal", "import duty", "customs duty", "H-1B", "टैरिफ"]
+    angles: [explainer, hot_take_news, timeline, what_if_calculator]
+  - id: fii_dii_flows
+    name: "FII/DII flows"
+    bucket: markets
+    keywords: ["FII", "FIIs", "FPI", "FPIs", "DII", "DIIs", "foreign investors", "foreign portfolio investors", "FPI selling", "FII selling"]
+    angles: [explainer, data_compare, history_lesson, contrarian_take]
+  - id: gdp_economy
+    name: "GDP & economy"
+    bucket: markets
+    keywords: ["GDP", "economic growth", "Indian economy", "recession", "PMI", "IIP", "fiscal deficit", "jobs data", "unemployment", "जीडीपी", "अर्थव्यवस्था"]
+    angles: [explainer, data_compare, history_lesson, myth_bust]
+  - id: banking_news
+    name: "Banking news"
+    bucket: markets
+    keywords: ["bank merger", "bank failure", "DICGC", "deposit insurance", "bank holiday", "banking sector", "NPA", "NPAs", "bad loans", "cooperative bank", "co-operative bank", "PSU bank", "PSU banks"]
+    angles: [explainer, red_flags, faq, timeline]
+  - id: sebi_regulation
+    name: "SEBI rules"
+    bucket: markets
+    keywords: ["Sebi", "market regulator", "Tuhin Kanta Pandey", "सेबी"]
+    angles: [before_after_rule, explainer, faq, hot_take_news, timeline]
+  - id: ipo_buzz
+    name: "IPO buzz"
+    bucket: markets
+    keywords: ["IPO", "IPOs", "GMP", "grey market premium", "IPO allotment", "listing gains", "SME IPO", "anchor investors", "आईपीओ"]
+    angles: [checklist, mistakes_list, explainer, myth_bust, red_flags, should_you]
+
+  # Wealth / HNI
+  - id: pms_aif
+    name: "PMS & AIFs"
+    bucket: wealth
+    keywords: ["PMS", "portfolio management service", "portfolio management services", "AIF", "AIFs", "alternative investment fund", "alternative investment funds"]
+    angles: [explainer, data_compare, should_you, myth_bust]
+  - id: estate_succession
+    name: "Estate & succession planning"
+    bucket: wealth
+    keywords: ["estate planning", "succession planning", "writing a will", "nominee", "nomination", "inheritance", "family trust", "private trust", "succession law", "वसीयत"]
+    angles: [checklist, mistakes_list, explainer, faq]
+  - id: nri_investing
+    name: "NRI investing"
+    bucket: wealth
+    keywords: ["NRI", "NRIs", "NRE", "NRO", "FEMA", "remittance", "remittances", "LRS", "GIFT City", "एनआरआई"]
+    angles: [explainer, checklist, faq, before_after_rule]
+  - id: real_estate_vs_equity
+    name: "Real estate vs equity"
+    bucket: wealth
+    keywords: ["REIT", "REITs", "InvIT", "InvITs", "fractional ownership", "commercial real estate", "rental yield", "real estate vs"]
+    angles: [data_compare, should_you, myth_bust, explainer]
+  - id: global_investing
+    name: "Global investing"
+    bucket: wealth
+    keywords: ["US stocks", "international fund", "international funds", "global investing", "overseas investment", "foreign stocks", "US ETF", "US ETFs"]
+    angles: [explainer, data_compare, should_you, checklist]
+  - id: bonds_debt
+    name: "Bonds & debt"
+    bucket: wealth
+    keywords: ["bond", "bonds", "bond yield", "bond yields", "G-sec", "G-secs", "government securities", "corporate bonds", "RBI Retail Direct", "debt market", "10-year yield"]
+    angles: [explainer, data_compare, should_you, myth_bust]
+  - id: unlisted_esop
+    name: "Unlisted shares & ESOPs"
+    bucket: wealth
+    keywords: ["unlisted shares", "pre-IPO", "ESOP", "ESOPs", "startup funding", "angel investor", "angel tax", "unicorn"]
+    angles: [explainer, red_flags, what_if_calculator, faq]
+  - id: rich_list_wealth
+    name: "Rich lists & wealth"
+    bucket: wealth
+    keywords: ["billionaire", "billionaires", "richest", "rich list", "Hurun", "Forbes", "net worth", "family office", "ultra-rich", "HNI", "HNIs", "wealthiest"]
+    angles: [data_compare, contrarian_take, myth_bust, history_lesson, poll]
+  - id: hni_tax_planning
+    name: "HNI tax planning"
+    bucket: wealth
+    keywords: ["surcharge", "wealth tax", "HUF", "54EC", "super rich tax", "inheritance tax", "estate duty"]
+    angles: [explainer, what_if_calculator, before_after_rule, faq]
+
+  # Trading & stocks
+  - id: fno_trading
+    name: "F&O trading"
+    bucket: trading
+    keywords: ["F&O", "futures and options", "options trading", "option trading", "derivatives", "expiry", "intraday", "weekly expiry", "lot size", "एफएंडओ"]
+    angles: [myth_bust, mistakes_list, data_compare, red_flags, explainer, contrarian_take]
+  - id: stock_moves
+    name: "Big stock moves"
+    bucket: trading
+    keywords: ["shares surge", "shares jump", "shares rally", "shares fall", "shares crash", "shares tank", "shares slump", "stock surges", "stock jumps", "stock falls", "stock crashes", "upper circuit", "lower circuit", "52-week high", "52-week low", "multibagger", "target price", "buy rating", "sell rating"]
+    angles: [explainer, timeline, history_lesson, myth_bust, mistakes_list]
+  - id: smallcap_penny
+    name: "Small caps & penny stocks"
+    bucket: trading
+    keywords: ["smallcap", "smallcaps", "small-cap", "small cap", "midcap", "midcaps", "mid-cap", "penny stock", "penny stocks", "SME stocks", "microcap"]
+    angles: [red_flags, myth_bust, data_compare, mistakes_list, history_lesson]
+  - id: corporate_actions
+    name: "Dividends, bonuses & splits"
+    bucket: trading
+    keywords: ["dividend", "dividends", "bonus issue", "bonus shares", "stock split", "buyback", "record date", "rights issue", "ex-dividend"]
+    angles: [explainer, checklist, faq, myth_bust]
+  - id: earnings_results
+    name: "Quarterly results"
+    bucket: trading
+    keywords: ["Q1 results", "Q2 results", "Q3 results", "Q4 results", "quarterly results", "net profit", "earnings", "profit jumps", "profit falls", "revenue growth"]
+    angles: [explainer, data_compare, timeline, myth_bust]
+  - id: trading_psychology
+    name: "Retail trader behaviour"
+    bucket: trading
+    keywords: ["retail traders", "retail investors", "demat accounts", "demat account", "trading losses", "overtrading", "trading psychology", "lose money"]
+    angles: [myth_bust, mistakes_list, contrarian_take, data_compare, poll, red_flags]
+  - id: short_seller_fraud
+    name: "Short sellers & market fraud"
+    bucket: trading
+    keywords: ["short seller", "short-seller", "Hindenburg", "promoter pledge", "accounting fraud", "forensic audit", "insider trading", "front running", "front-running", "market manipulation", "pump and dump"]
+    angles: [timeline, explainer, red_flags, history_lesson]
+  - id: finfluencers
+    name: "Finfluencers & tips"
+    bucket: trading
+    keywords: ["finfluencer", "finfluencers", "stock tips", "Telegram tips", "trading course", "unregistered advisers", "unregistered advisors"]
+    angles: [red_flags, myth_bust, checklist, contrarian_take]
+  - id: crypto
+    name: "Crypto"
+    bucket: trading
+    keywords: ["crypto", "cryptocurrency", "cryptocurrencies", "bitcoin", "ethereum", "crypto tax", "VDA", "WazirX", "CoinDCX", "क्रिप्टो", "बिटकॉइन"]
+    angles: [explainer, myth_bust, red_flags, data_compare, history_lesson]
+
+# Words that mark text as finance-related (lowercase; used by new-phrase detection).
+finance_vocab: [market, markets, stock, stocks, share, shares, sensex, nifty, ipo, tax, taxes, rbi, sebi, loan, loans, bank, banks, fund, funds, invest, investing, investor, investors, investment, rupee, crore, lakh, price, prices, rate, rates, gold, silver, crypto, bitcoin, gdp, inflation, profit, earnings, dividend, insurance, salary, emi, upi, gst, budget, economy, finance, financial, money, wealth, trading, trader, traders, nse, bse, sip, mutual, शेयर, बाजार, निवेश, टैक्स, रुपया, सोना, बैंक]

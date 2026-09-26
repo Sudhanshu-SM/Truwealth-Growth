@@ -1,0 +1,73 @@
+# Endpoints the collectors read. All free, no keys. Checked 2026-09-26.
+
+google_trends:
+  url: "https://trends.google.com/trending/rss?geo=IN"
+
+google_news:
+  url: "https://news.google.com/rss/search"
+  window: "when:1h"
+  params_en: {hl: "en-IN", gl: "IN", ceid: "IN:en"}
+  params_hi: {hl: "hi", gl: "IN", ceid: "IN:hi"}
+  queries:
+    - {id: mf, lang: en, q: '"mutual fund" OR SIP OR NFO OR "index fund" OR ELSS'}
+    - {id: tax, lang: en, q: '"income tax" OR ITR OR "tax regime" OR "capital gains" OR TDS OR GST'}
+    - {id: loans, lang: en, q: '"home loan" OR EMI OR "credit card" OR CIBIL OR "fixed deposit" OR insurance'}
+    - {id: retire, lang: en, q: 'EPFO OR NPS OR PPF OR pension OR retirement OR UPI'}
+    - {id: market, lang: en, q: 'Sensex OR Nifty OR "stock market" OR "Dalal Street"'}
+    - {id: macro, lang: en, q: 'RBI OR "repo rate" OR inflation OR rupee OR "gold price" OR "crude oil"'}
+    - {id: trading, lang: en, q: 'IPO OR GMP OR "F&O" OR SEBI OR multibagger'}
+    - {id: wealth, lang: en, q: 'PMS OR AIF OR NRI OR "estate planning" OR "family office" OR REIT'}
+    - {id: moneycontrol, lang: en, q: 'site:moneycontrol.com'}
+    - {id: hi_market, lang: hi, q: 'शेयर बाजार OR सेंसेक्स OR निफ्टी OR आईपीओ'}
+    - {id: hi_money, lang: hi, q: 'म्यूचुअल फंड OR आयकर OR आरबीआई OR सोना'}
+  # Google News mixes in foreign outlets even for the India edition. Results are kept only from .in domains,
+  # domains containing "india" (indiatimes.com, indianexpress.com, ...) and these Indian outlets.
+  allowed_domains: [livemint.com, business-standard.com, moneycontrol.com, cnbctv18.com, ndtvprofit.com,
+                    financialexpress.com, thehindubusinessline.com, thehindu.com, hindustantimes.com, news18.com,
+                    ndtv.com, zeebiz.com, bhaskar.com, livehindustan.com, jagran.com, amarujala.com, abplive.com,
+                    firstpost.com, deccanherald.com, telegraphindia.com, tribuneindia.com, newindianexpress.com,
+                    timesnownews.com, republicworld.com, wionews.com, lokmat.com, mid-day.com, thequint.com,
+                    etmoney.com, paisabazaar.com, bankbazaar.com, policybazaar.com, inc42.com, entrackr.com,
+                    yourstory.com, medianama.com, vccircle.com, outlookbusiness.com, tv9hindi.com,
+                    in.investing.com, linkedin.com]
+
+news_feeds:
+  - {id: et_markets, url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"}
+  - {id: et_wealth, url: "https://economictimes.indiatimes.com/wealth/rssfeeds/837555174.cms"}
+  - {id: et_mf, url: "https://economictimes.indiatimes.com/mf/rssfeeds/359241701.cms"}
+  - {id: mint_markets, url: "https://www.livemint.com/rss/markets"}
+  - {id: mint_money, url: "https://www.livemint.com/rss/money"}
+  - {id: bs_markets, url: "https://www.business-standard.com/rss/markets-106.rss"}
+  - {id: bs_finance, url: "https://www.business-standard.com/rss/finance-103.rss"}
+  - {id: bs_economy, url: "https://www.business-standard.com/rss/economy-102.rss"}
+  - {id: cnbctv18_market, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml"}
+  - {id: cnbctv18_economy, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/economy.xml"}
+  - {id: cnbctv18_pf, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/personal-finance.xml"}
+  - {id: ndtvprofit, url: "https://feeds.feedburner.com/ndtvprofit-latest"}
+
+regulators:
+  - {id: rbi, url: "https://rbi.org.in/pressreleases_rss.xml"}
+  - {id: sebi, url: "https://www.sebi.gov.in/sebirss.xml"}
+
+x_trends:
+  primary: "https://trends24.in/india/"
+  fallback: "https://getdaytrends.com/india/"
+
+reddit:
+  url_template: "https://www.reddit.com/r/{sub}/rising/.rss"
+  subreddits: [IndiaInvestments, personalfinanceindia, IndianStockMarket, IndianStreetBets, FIREIndia, CreditCardsIndia, IndiaTax, StockMarketIndia]
+
+markets:
+  url_template: "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
+  freshness_minutes: 30
+  symbols:
+    - {symbol: "^NSEI", name: "Nifty 50", threshold: 1.5, topic: market_moves}
+    - {symbol: "^BSESN", name: "Sensex", threshold: 1.5, topic: market_moves}
+    - {symbol: "^NSEBANK", name: "Bank Nifty", threshold: 2.0, topic: market_moves}
+    - {symbol: "^INDIAVIX", name: "India VIX", threshold: 10.0, topic: market_moves, up_only: true}
+    - {symbol: "GC=F", name: "Gold futures", threshold: 2.0, topic: gold_price}
+    - {symbol: "INR=X", name: "USD/INR", threshold: 0.5, topic: rupee_forex}
+    - {symbol: "^GSPC", name: "S&P 500", threshold: 2.0, topic: us_fed_global}
+
+youtube:
+  rss_template: "https://www.youtube.com/feeds/videos.xml?channel_id={id}"

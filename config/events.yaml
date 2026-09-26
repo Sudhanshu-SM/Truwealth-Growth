@@ -1,0 +1,14 @@
+# Dated events shown in the digest's "Coming up" section. Events never change heat.
+# topic must be a topic id from topics.yaml; date_end is optional.
+
+events:
+  - {date: 2026-10-07, name: "RBI MPC policy decision", topic: rbi_policy}
+  - {date: 2026-10-10, date_end: 2026-11-14, name: "Q2 FY27 results season", topic: earnings_results}
+  - {date: 2026-10-28, name: "US FOMC decision (result late night IST)", topic: us_fed_global}
+  - {date: 2026-12-04, name: "RBI MPC policy decision", topic: rbi_policy}
+  - {date: 2026-12-09, name: "US FOMC decision (result late night IST)", topic: us_fed_global}
+  - {date: 2026-12-15, name: "Advance tax due (third instalment)", topic: income_tax}
+  - {date: 2027-02-01, name: "Union Budget 2027-28 (expected)", topic: union_budget}
+  - {date: 2027-02-05, name: "RBI MPC policy decision", topic: rbi_policy}
+  - {date: 2027-03-15, name: "Advance tax due (final instalment)", topic: income_tax}
+  - {date: 2027-03-31, name: "Financial year end and tax-saving deadline", topic: income_tax}

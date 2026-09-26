@@ -1,0 +1,97 @@
+# Radar tuning knobs. Spec: docs/superpowers/specs/2026-09-26-viral-content-radar-design.md
+
+run:
+  collector_workers: 8
+  item_max_age_hours: 24
+  breaker_failures: 3          # a collector failing this many runs in a row...
+  breaker_retry_minutes: 60    # ...is retried at most this often
+
+scoring:
+  watch_threshold: 4.0
+  hot_threshold: 6.0
+  prior_weight: 4
+  baseline_days: 7
+  hour_window: 1
+  z_clip: 6.0
+  sources:
+    news:  {mu0: 1.0, sigma0: 1.5, floor: 1.0, min_value: 3,   weight: 1.0}
+    video: {mu0: 0.3, sigma0: 1.0, floor: 1.0, min_value: 1.5, weight: 0.8}
+    forum: {mu0: 0.2, sigma0: 0.8, floor: 0.8, min_value: 2,   weight: 0.5}
+  emerging_news_prior: {mu0: 0.5, sigma0: 1.0}
+  bonus:
+    search_trend: [[500000, 5], [100000, 4], [20000, 3], [0, 2]]
+    x_trend: [[10, 4], [25, 3], [50, 2]]
+    market: {base: 3, double: 4}
+    regulator: 2
+  bonus_window_hours: 6
+  x_trend_max_age_minutes: 75
+  episode_end_runs: 4
+  emerging_stage_hours: 2
+
+alerts:
+  warmup_hours: 24
+  cooldown_hours: 12
+  daily_cap: 4
+  urgency_hours: {Emerging: 3, Peaking: 1}
+
+phrases:
+  min_ratio: 4.0
+  min_items: 3
+  min_feeds: 2
+  baseline_floor: 0.25
+  finance_share: 0.5
+  subsume_share: 0.8
+  map_share: 0.6
+  min_chars: 5
+  emerging_ttl_hours: 48
+  # A phrase is dropped if it contains any of these (daily boilerplate and routine company filings).
+  blocklist: ["share price", "stock market today", "sensex today", "top gainers", "top losers", "market live",
+              "trading window", "board meeting", "intimation"]
+  # Space-separated so YAML never turns words like "no" or "on" into booleans.
+  stopwords: >-
+    a an the and or but if then else of to in on for with at by from as is are was were be been being
+    it its into about up down out off over under not no nor so do does did doing done has have had having
+    can could would should will may might must shall than too very just now new top day days week weeks
+    today latest live update updates news check know here there why what how when where which who whom
+    whose this that these those i me my we our us you your yours he she him her his they them their says
+    said say amid after before again all any both each few more most other some such only own same big
+    get gets got via vs full list details report reports things thing watch video shorts short breaking
+    also still even much many one two three first last next year years month months crore lakh rs
+    के का की में से को पर और है हैं ने भी तो ही या एक यह वह ये वो लिए क्या नहीं हो गया गई गए कर रहा रही
+    रहे बाद साथ अब जानें आज कैसे क्यों सकते होगा होंगे किया जा था थी
+
+youtube:
+  rotation_groups: 3
+  track_hours: 72
+  per_channel_track: 20
+  min_baseline_samples: 3
+  min_sample_age_hours: 6
+  outlier_min_signal: 1.5
+  outlier_cap: 10
+  signal_max_age_hours: 48
+  hooks_now_min: 2.0
+  hooks_now_hours: 72
+
+reddit:
+  spacing_seconds: 3
+
+x_trends:
+  min_interval_minutes: 55
+
+retention:
+  items_days: 3
+  history_days: 8
+  videos_days: 30
+  alerts_days: 30
+
+email:
+  smtp_host: smtp.gmail.com
+  smtp_port: 587
+  sender_name: Truwealth Radar
+
+digest:
+  top_n: 10
+  near_miss_n: 5
+  scoreboard_n: 5
+  events_days: 7
+  health_stale_hours: 6

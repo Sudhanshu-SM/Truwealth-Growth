@@ -1,0 +1,138 @@
+# Content angle playbook. Hooks may use {topic} and {headline}; the first hook is used in briefs.
+
+angles:
+  - id: hot_take_news
+    name: Fast reaction
+    formats:
+      linkedin: "Text post: what happened, what it means for the reader, your view (120-200 words)"
+      x: "Single post with the key number, then a 3-post thread"
+      instagram: "Reel 20-30 s talking head: here's what this news means for you"
+    hooks:
+      - "{headline}. Here's what it means for your money."
+      - "Everyone is talking about {topic}. 3 things you should know."
+  - id: explainer
+    name: Plain-language explainer
+    formats:
+      linkedin: "Document carousel, 6-8 slides: what, why, who is affected, what to do"
+      x: "Thread, 5-7 posts, one idea per post"
+      instagram: "Reel 45-60 s explainer or 7-slide carousel"
+    hooks:
+      - "{topic}, explained in 60 seconds."
+      - "What {topic} actually means for you."
+  - id: before_after_rule
+    name: Old rule vs new rule
+    formats:
+      linkedin: "Carousel with a before/after table, one change per slide"
+      x: "Post with a two-column before/after image, details in replies"
+      instagram: "Carousel: slide 1 'What changed', then before/after slides"
+    hooks:
+      - "{topic}: old rule vs new rule."
+      - "This change affects your money. Here's what's different."
+  - id: myth_bust
+    name: Myth vs fact
+    formats:
+      linkedin: "Text post: 3 myths, one line each, plus the fact (150-250 words)"
+      x: "Thread: one myth per post, 5-6 posts"
+      instagram: "Reel 30-45 s 'Myth or fact?' or 7-slide carousel"
+    hooks:
+      - "Everyone's talking about {topic}. Here's what most people get wrong."
+      - "3 myths about {topic} I hear every week."
+  - id: data_compare
+    name: Data comparison
+    formats:
+      linkedin: "Carousel or single chart comparing the options over time"
+      x: "One chart plus a two-line takeaway"
+      instagram: "Carousel: chart slide first, then 3 takeaway slides"
+    hooks:
+      - "{topic}: what the long-term data actually says."
+      - "The numbers behind {topic} that nobody shows you."
+  - id: history_lesson
+    name: History lesson
+    formats:
+      linkedin: "Text post or carousel: the last few times this happened and what followed"
+      x: "Thread with a timeline of past episodes"
+      instagram: "Reel 30-45 s: 'The last 5 times this happened...'"
+    hooks:
+      - "The last 5 times this happened, here's what followed."
+      - "We've seen {topic} before. History says this."
+  - id: mistakes_list
+    name: Common mistakes
+    formats:
+      linkedin: "Listicle post: 5 mistakes, one line each, with the fix"
+      x: "Thread: one mistake per post"
+      instagram: "Carousel: one mistake per slide"
+    hooks:
+      - "5 mistakes people make with {topic}."
+      - "I see this {topic} mistake every week."
+  - id: checklist
+    name: Action checklist
+    formats:
+      linkedin: "Checklist post or carousel people can save"
+      x: "Numbered thread, one step per post"
+      instagram: "Save-worthy 6-slide checklist carousel"
+    hooks:
+      - "{topic}: a 5-point checklist before you do anything."
+      - "Save this before you act on {topic}."
+  - id: faq
+    name: Top questions answered
+    formats:
+      linkedin: "Q&A post answering the 5 most-asked questions"
+      x: "Thread: one question and answer per post"
+      instagram: "Reel answering the top 3 questions, or a Q&A carousel"
+    hooks:
+      - "The 5 questions everyone is asking about {topic}, answered."
+      - "Your {topic} questions, answered simply."
+  - id: red_flags
+    name: Red flags
+    formats:
+      linkedin: "Text post: 5 warning signs and what to do instead"
+      x: "Thread: one red flag per post"
+      instagram: "Reel 30 s red-flags countdown, or a carousel"
+    hooks:
+      - "{topic}: 5 red flags to watch out for."
+      - "If someone pitches you {topic}, ask these questions first."
+  - id: should_you
+    name: Should you act?
+    formats:
+      linkedin: "Decision framework post: who should act, who should wait"
+      x: "Post with a simple yes/no flow, details in the thread"
+      instagram: "Reel 30-45 s: 'Should you...? It depends on these 3 things'"
+    hooks:
+      - "Should you act on {topic}? Ask these 3 questions first."
+      - "{topic} is everywhere. Here's who should care and who shouldn't."
+  - id: what_if_calculator
+    name: Run the numbers
+    formats:
+      linkedin: "Worked example with real rupee numbers, as a carousel"
+      x: "Post with one worked example, the calculation in the thread"
+      instagram: "Reel with an on-screen calculation, or a 5-slide carousel"
+    hooks:
+      - "What {topic} means for someone earning ₹1 lakh a month."
+      - "Let's run the numbers on {topic}."
+  - id: contrarian_take
+    name: Contrarian take
+    formats:
+      linkedin: "Opinion post: the popular view, why you disagree, the evidence"
+      x: "Hot-take post, reasoning in the thread"
+      instagram: "Reel 30 s 'Unpopular opinion'"
+    hooks:
+      - "Unpopular opinion on {topic}."
+      - "Everyone's worried about {topic}. I'm not. Here's why."
+  - id: timeline
+    name: What happened, step by step
+    formats:
+      linkedin: "Carousel timeline of events with dates"
+      x: "Thread in chronological order"
+      instagram: "Carousel timeline or Reel 45 s 'The full story'"
+    hooks:
+      - "{topic}: the full story in 5 steps."
+      - "How {topic} unfolded, and what comes next."
+  - id: poll
+    name: Audience poll
+    formats:
+      linkedin: "Poll with 3-4 options plus a short context line"
+      x: "Poll with a one-line setup"
+      instagram: "Story poll or quiz sticker, then share the results"
+    hooks:
+      - "Quick poll: how is {topic} affecting your plans?"
+      - "Be honest: what are you doing about {topic}?"
