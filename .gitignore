@@ -1,0 +1,8 @@
+radar.db
+radar.db-*
+out/
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+.env
