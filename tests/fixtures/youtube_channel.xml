@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <title>Test Creator</title>
+ <entry>
+  <id>yt:video:vidShort001</id>
+  <yt:videoId>vidShort001</yt:videoId>
+  <yt:channelId>UCtest</yt:channelId>
+  <title>Why Insurance companies crashed today? #shorts</title>
+  <link rel="alternate" href="https://www.youtube.com/shorts/vidShort001"/>
+  <published>2026-09-26T06:00:00+00:00</published>
+  <updated>2026-09-26T06:10:00+00:00</updated>
+  <media:group>
+   <media:title>Why Insurance companies crashed today? #shorts</media:title>
+   <media:description>Insurance stocks fell sharply today.</media:description>
+   <media:community><media:starRating count="91" average="5.00" min="1" max="5"/><media:statistics views="12000"/></media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:vidLong0001</id>
+  <yt:videoId>vidLong0001</yt:videoId>
+  <yt:channelId>UCtest</yt:channelId>
+  <title>5 mistakes to avoid in SIP</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=vidLong0001"/>
+  <published>2026-09-26T03:00:00+00:00</published>
+  <updated>2026-09-26T05:00:00+00:00</updated>
+  <media:group>
+   <media:title>5 mistakes to avoid in SIP</media:title>
+   <media:description>Common SIP mistakes.</media:description>
+   <media:community><media:starRating count="40" average="5.00" min="1" max="5"/><media:statistics views="3000"/></media:community>
+  </media:group>
+ </entry>
+ <entry>
+  <id>yt:video:vidOld00001</id>
+  <yt:videoId>vidOld00001</yt:videoId>
+  <yt:channelId>UCtest</yt:channelId>
+  <title>Old video one</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=vidOld00001"/>
+  <published>2026-09-22T08:00:00+00:00</published>
+  <updated>2026-09-23T08:00:00+00:00</updated>
+  <media:group><media:title>Old video one</media:title><media:description>One</media:description>
+   <media:community><media:statistics views="20000"/></media:community></media:group>
+ </entry>
+ <entry>
+  <id>yt:video:vidOld00002</id>
+  <yt:videoId>vidOld00002</yt:videoId>
+  <yt:channelId>UCtest</yt:channelId>
+  <title>Old video two</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=vidOld00002"/>
+  <published>2026-09-21T08:00:00+00:00</published>
+  <updated>2026-09-22T08:00:00+00:00</updated>
+  <media:group><media:title>Old video two</media:title><media:description>Two</media:description>
+   <media:community><media:statistics views="24000"/></media:community></media:group>
+ </entry>
+ <entry>
+  <id>yt:video:vidOld00003</id>
+  <yt:videoId>vidOld00003</yt:videoId>
+  <yt:channelId>UCtest</yt:channelId>
+  <title>Old video three</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=vidOld00003"/>
+  <published>2026-09-20T08:00:00+00:00</published>
+  <updated>2026-09-21T08:00:00+00:00</updated>
+  <media:group><media:title>Old video three</media:title><media:description>Three</media:description>
+   <media:community><media:statistics views="16000"/></media:community></media:group>
+ </entry>
+</feed>
