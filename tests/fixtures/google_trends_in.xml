@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<rss xmlns:atom="http://www.w3.org/2005/Atom" xmlns:ht="https://trends.google.com/trending/rss" version="2.0">
+<channel>
+<title>Daily Search Trends</title>
+<item>
+<title>gold rate today</title>
+<ht:approx_traffic>50K+</ht:approx_traffic>
+<description></description>
+<link>https://trends.google.com/trending/rss?geo=IN</link>
+<pubDate>Sat, 26 Sep 2026 01:40:00 -0700</pubDate>
+<ht:news_item>
+<ht:news_item_title>Gold hits record high as rupee weakens</ht:news_item_title>
+<ht:news_item_snippet></ht:news_item_snippet>
+<ht:news_item_url>https://example.test/gold-record</ht:news_item_url>
+<ht:news_item_source>Mint</ht:news_item_source>
+</ht:news_item>
+<ht:news_item>
+<ht:news_item_title>Gold price today: 24K rate jumps</ht:news_item_title>
+<ht:news_item_snippet></ht:news_item_snippet>
+<ht:news_item_url>https://example.test/gold-rate</ht:news_item_url>
+<ht:news_item_source>ET</ht:news_item_source>
+</ht:news_item>
+</item>
+<item>
+<title>lottery sambad</title>
+<ht:approx_traffic>10000+</ht:approx_traffic>
+<description></description>
+<link>https://trends.google.com/trending/rss?geo=IN</link>
+<pubDate>Sat, 26 Sep 2026 06:30:00 -0700</pubDate>
+</item>
+</channel>
+</rss>
