@@ -1,4 +1,5 @@
-"""Reddit 'rising' RSS for Indian finance subreddits. Best-effort: Reddit often blocks cloud IPs."""
+"""Reddit 'rising' RSS for Indian finance subreddits. Best-effort: Reddit rate-limits after a request or two,
+so each run starts at a different subreddit and every subreddit gets read over successive runs."""
 from __future__ import annotations
 
 import logging
@@ -22,9 +23,11 @@ def parse(raw: bytes, sub: str) -> list[Signal]:
 def collect(ctx: Context) -> list[Signal]:
     cfg = ctx.config.sources["reddit"]
     spacing = ctx.config.settings["reddit"]["spacing_seconds"]
+    subs = list(cfg["subreddits"])
+    start = ctx.run_index % len(subs)
     out: list[Signal] = []
     failures = 0
-    for i, sub in enumerate(cfg["subreddits"]):
+    for i, sub in enumerate(subs[start:] + subs[:start]):
         if i:
             time.sleep(spacing)
         try:

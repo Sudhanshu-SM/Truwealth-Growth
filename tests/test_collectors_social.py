@@ -71,6 +71,19 @@ def test_reddit_stops_after_429(monkeypatch):
     assert len(calls) == 1
 
 
+def test_reddit_starts_at_a_different_subreddit_each_run(monkeypatch):
+    monkeypatch.setattr(reddit.time, "sleep", lambda seconds: None)
+    calls = []
+
+    def handler(request):
+        calls.append(str(request.url))
+        return httpx.Response(429)
+
+    with pytest.raises(RuntimeError):
+        reddit.collect(make_ctx(handler, run_index=2))
+    assert calls == ["https://www.reddit.com/r/IndianStockMarket/rising/.rss"]
+
+
 def test_reddit_keeps_partial_results(monkeypatch):
     monkeypatch.setattr(reddit.time, "sleep", lambda seconds: None)
 
