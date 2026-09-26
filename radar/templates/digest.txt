@@ -1,0 +1,21 @@
+Radar digest, {{ d.date_label }}
+
+Top trends, last 24 hours:
+{% for t in d.top %}- {{ t.name }} [{{ t.bucket }}] peak {{ t.peak }}, stage {{ t.stage }}, alert {{ t.status }}{% if t.evidence %}: {{ t.evidence }}{% endif %}{% if t.url %} ({{ t.url }}){% endif %}
+{% else %}- No trending topics in the last 24 hours.
+{% endfor %}
+Near misses:
+{% for n in d.near_misses %}- {{ n.name }} ({{ n.bucket }}), peak {{ n.peak }}
+{% else %}- None.
+{% endfor %}
+Format scoreboard, last 7 days:
+{% for s in d.scoreboard %}- {{ angle_names.get(s.angle, s.angle) }}, {{ s.format }}: {{ s.median }}x normal views over {{ s.count }} videos. Example: "{{ s.example }}"
+{% else %}- Not enough scored videos yet.
+{% endfor %}
+Coming up, next 7 days:
+{% for e in d.events %}- {{ e.date }}: {{ e.name }}. Prep ideas: {{ e.angles | join(", ") }}
+{% else %}- No dated events.
+{% endfor %}
+Source health:
+{% for h in d.health %}- {{ h }}
+{% endfor %}

@@ -1,0 +1,21 @@
+<!doctype html>
+<html><body style="font-family: Arial, sans-serif; color: #111; max-width: 680px;">
+<p style="color: #555; margin: 0;">{{ bucket }} &middot; {{ brief.score.stage }} &middot; {{ brief.urgency }}</p>
+<h2 style="margin: 4px 0 12px;">{{ brief.topic.name }}</h2>
+<p><strong>Headline:</strong> {% if brief.headline_url %}<a href="{{ brief.headline_url }}">{{ brief.headline }}</a>{% else %}{{ brief.headline }}{% endif %}</p>
+<h3>Why now</h3>
+<ul>{% for text, url in brief.evidence %}<li>{% if url %}<a href="{{ url }}">{{ text }}</a>{% else %}{{ text }}{% endif %}</li>{% endfor %}</ul>
+{% if brief.phrases %}<p><strong>Spiking phrases:</strong> {{ brief.phrases | join(", ") }}</p>{% endif %}
+<h3>Angles</h3>
+{% for a in brief.angles %}
+<p style="margin-bottom: 4px;"><strong>{{ loop.index }}. {{ a.name }}</strong><br>Hook: "{{ a.hook }}"</p>
+<table cellpadding="4" style="border-collapse: collapse; margin-bottom: 12px;">
+<tr><td style="color: #555;">LinkedIn</td><td>{{ a.linkedin }}</td></tr>
+<tr><td style="color: #555;">X</td><td>{{ a.x }}</td></tr>
+<tr><td style="color: #555;">Instagram</td><td>{{ a.instagram }}</td></tr>
+</table>
+{% endfor %}
+{% if brief.hooks_now %}<h3>Hooks working right now</h3>
+<ul>{% for h in brief.hooks_now %}<li><a href="{{ h.url }}">{{ h.title }}</a> by {{ h.creator }} ({{ h.format }}, {{ h.score }} normal views)</li>{% endfor %}</ul>{% endif %}
+<p style="color: #777; font-size: 12px;">Heat {{ brief.score.heat }} from {{ brief.score.n_sources }} sources. Truwealth Radar.</p>
+</body></html>

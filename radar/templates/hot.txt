@@ -1,0 +1,22 @@
+{{ bucket }} | {{ brief.score.stage }} | {{ brief.urgency }}
+{{ brief.topic.name }}
+
+Headline: {{ brief.headline }}{% if brief.headline_url %}
+{{ brief.headline_url }}{% endif %}
+
+Why now:
+{% for text, url in brief.evidence %}- {{ text }}{% if url %} ({{ url }}){% endif %}
+{% endfor %}{% if brief.phrases %}
+Spiking phrases: {{ brief.phrases | join(", ") }}
+{% endif %}
+Angles:
+{% for a in brief.angles %}{{ loop.index }}. {{ a.name }}
+   Hook: "{{ a.hook }}"
+   LinkedIn: {{ a.linkedin }}
+   X: {{ a.x }}
+   Instagram: {{ a.instagram }}
+{% endfor %}{% if brief.hooks_now %}
+Hooks working right now:
+{% for h in brief.hooks_now %}- {{ h.title }} by {{ h.creator }} ({{ h.format }}, {{ h.score }} normal views) {{ h.url }}
+{% endfor %}{% endif %}
+Heat {{ brief.score.heat }} from {{ brief.score.n_sources }} sources. Truwealth Radar.

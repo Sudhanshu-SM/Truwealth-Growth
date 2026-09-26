@@ -1,0 +1,17 @@
+<!doctype html>
+<html><body style="font-family: Arial, sans-serif; color: #111; max-width: 680px;">
+<h2 style="margin-bottom: 4px;">Radar digest, {{ d.date_label }}</h2>
+<h3>Top trends, last 24 hours</h3>
+{% if d.top %}<table cellpadding="4" style="border-collapse: collapse;">
+<tr style="color: #555; text-align: left;"><th>Topic</th><th>Peak</th><th>Stage now</th><th>Alert</th><th>Evidence</th></tr>
+{% for t in d.top %}<tr><td>{{ t.name }}<br><span style="color: #777; font-size: 12px;">{{ t.bucket }}</span></td><td>{{ t.peak }}</td><td>{{ t.stage }}</td><td>{{ t.status }}</td><td>{% if t.url %}<a href="{{ t.url }}">{{ t.evidence }}</a>{% else %}{{ t.evidence }}{% endif %}</td></tr>
+{% endfor %}</table>{% else %}<p>No trending topics in the last 24 hours.</p>{% endif %}
+<h3>Near misses</h3>
+{% if d.near_misses %}<ul>{% for n in d.near_misses %}<li>{{ n.name }} ({{ n.bucket }}), peak {{ n.peak }}</li>{% endfor %}</ul>{% else %}<p>None.</p>{% endif %}
+<h3>Format scoreboard, last 7 days</h3>
+{% if d.scoreboard %}<ul>{% for s in d.scoreboard %}<li>{{ angle_names.get(s.angle, s.angle) }}, {{ s.format }}: {{ s.median }}x normal views over {{ s.count }} videos. Example: "{{ s.example }}"</li>{% endfor %}</ul>{% else %}<p>Not enough scored videos yet.</p>{% endif %}
+<h3>Coming up, next 7 days</h3>
+{% if d.events %}<ul>{% for e in d.events %}<li>{{ e.date }}: {{ e.name }}. Prep ideas: {{ e.angles | join(", ") }}</li>{% endfor %}</ul>{% else %}<p>No dated events.</p>{% endif %}
+<h3>Source health</h3>
+<ul>{% for h in d.health %}<li>{{ h }}</li>{% endfor %}</ul>
+</body></html>
