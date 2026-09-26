@@ -8,7 +8,7 @@
 
 Truwealth is an Indian financial advisory firm. Its founder wants to post on LinkedIn, X and Instagram about finance topics while they are trending. Finance buzz in India (market moves, RBI/SEBI decisions, tax changes, IPO frenzies, scams) rises and dies within hours, so a suggestion that arrives after the peak is useless.
 
-The radar polls free public signals every 15 minutes, works out which finance topics are spiking, and emails the founder a brief: what is trending, the evidence, how urgent it is, which content angles fit each platform, and the compliance points to respect.
+The radar polls free public signals every 15 minutes, works out which finance topics are spiking, and emails the founder a brief: what is trending, the evidence, how urgent it is, and which content angles fit each platform. It is an in-house tool: its only user is the founder, choosing topics that will gain traction.
 
 ## 2. Decisions
 
@@ -18,13 +18,12 @@ The radar polls free public signals every 15 minutes, works out which finance to
 | Founder posts on | LinkedIn, X, Instagram |
 | Alerts | Email: instant HOT alert plus a daily digest at 08:00 IST |
 | Output | Brief + angles only. No post drafts or scripts in v1 |
-| Topics | Personal finance, Markets & macro, Wealth/HNI, Trading & stocks (education framing only) |
+| Topics | Personal finance, Markets & macro, Wealth/HNI, Trading & stocks |
 | Budget | $0/month |
 | X signal | Public trend mirrors only (trends24.in, getdaytrends.com). No X API, no cookie scraping |
 | Detection | Fixed topic list plus new-phrase spike detection. No ML models |
 | Hosting | GitHub Actions, public repository, every 15 minutes |
 | Presentation | No color coding or emoji markers anywhere. All labels are plain text |
-| Regulatory status (assumption) | Truwealth is a SEBI-registered Investment Adviser (INA number). If it is an AMFI-registered distributor (ARN) or another category, the compliance notes in section 11 must change |
 
 ## 3. Success criteria
 
@@ -32,7 +31,6 @@ The radar polls free public signals every 15 minutes, works out which finance to
 2. **Noise:** at most 4 HOT emails per IST day. A topic alerts at most once per 12 hours unless its heat doubles.
 3. **Reliability:** the digest arrives daily; a missing digest means the radar is broken. A failing source never stops a run.
 4. **Cost:** $0/month.
-5. **Compliance-aware:** every brief carries a compliance label and notes. Restricted topics only receive education-safe angles.
 
 ## 4. Non-goals (v1)
 
@@ -47,7 +45,7 @@ GitHub Actions, cron every 15 min
     2. collectors, each isolated          -> list[Signal]
     3. store new items, match to topics (topics.yaml), detect new-phrase spikes
     4. scorer: per-topic values -> heat -> stage -> alert decisions
-    5. briefs: evidence + angles + compliance
+    5. briefs: evidence + angles
     6. emailer: send HOT emails (or write out/*.html with --dry-run)
     7. prune radar.db, save it back to the cache
 
@@ -147,7 +145,7 @@ Metrics by source type: `search_trend` {approx_traffic}; `x_trend` {rank}; `vide
 | `episodes(topic_id PK, started_at, below_watch_runs)` | Current episode per topic | Deleted when the episode ends |
 | `alerts(id PK, topic_id, kind, sent_at, heat, subject)` | kind = `hot` or `capped`; cooldown, daily cap, digest | 30 days |
 | `phrase_counts(hour, phrase, items, feeds, PK(hour, phrase))` | Hourly phrase frequency; only phrases with 2+ items in the hour | 8 days |
-| `emerging_topics(topic_id PK, phrase, bucket, risk, created_at, last_seen_at)` | Auto-created topics | 48 h after last_seen |
+| `emerging_topics(topic_id PK, phrase, bucket, created_at, last_seen_at)` | Auto-created topics | 48 h after last_seen |
 | `source_health(source PK, last_ok_at, last_error_at, last_error, consecutive_failures)` | Digest health section | Kept |
 | `kv(key PK, value)` | Run index, last-fetch times, market event dedupe keys, YouTube quota counter | Kept |
 
@@ -260,21 +258,20 @@ Events never change heat.
 - id: gold_price
   name: Gold & silver prices
   bucket: markets          # personal_finance | markets | wealth | trading
-  risk: careful            # general | careful | restricted
   keywords: [gold price, gold rate, silver price, gold etf, sovereign gold bond, सोना, चांदी]
   angles: [data_compare, history_lesson, myth_bust, should_you, explainer]
 ```
 
-`topics.yaml` also holds `finance_vocab` (words that mark finance context, used in section 9) and `stock_vocab` (words that make an emerging topic restricted).
+`topics.yaml` also holds `finance_vocab`: words that mark finance context, used in section 9.
 
 ### Initial topics (47)
 
-| Bucket | Topics (risk) |
+| Bucket | Topics |
 |---|---|
-| Personal finance (14) | sip_mutual_funds (careful), income_tax (general), itr_filing (general), capital_gains_tax (careful), insurance (careful), loans_emi (general), credit_cards (general), credit_score (general), retirement_pension (careful), fixed_income_savings (careful), upi_payments (general), scams_fraud (general), salary_budgeting (general), home_buying (careful) |
-| Markets & macro (15) | market_moves (careful), rbi_policy (general), inflation (general), union_budget (general), gst (general), gold_price (careful), rupee_forex (general), crude_oil (general), us_fed_global (general), tariffs_trade (general), fii_dii_flows (careful), gdp_economy (general), banking_news (general), sebi_regulation (general), ipo_buzz (restricted) |
-| Wealth / HNI (9) | pms_aif (careful), estate_succession (general), nri_investing (general), real_estate_vs_equity (careful), global_investing (careful), bonds_debt (careful), unlisted_esop (careful), rich_list_wealth (general), hni_tax_planning (general) |
-| Trading & stocks (9) | fno_trading (restricted), stock_moves (restricted), smallcap_penny (restricted), corporate_actions (restricted), earnings_results (restricted), trading_psychology (careful), short_seller_fraud (restricted), finfluencers (general), crypto (restricted) |
+| Personal finance (14) | sip_mutual_funds, income_tax, itr_filing, capital_gains_tax, insurance, loans_emi, credit_cards, credit_score, retirement_pension, fixed_income_savings, upi_payments, scams_fraud, salary_budgeting, home_buying |
+| Markets & macro (15) | market_moves, rbi_policy, inflation, union_budget, gst, gold_price, rupee_forex, crude_oil, us_fed_global, tariffs_trade, fii_dii_flows, gdp_economy, banking_news, sebi_regulation, ipo_buzz |
+| Wealth / HNI (9) | pms_aif, estate_succession, nri_investing, real_estate_vs_equity, global_investing, bonds_debt, unlisted_esop, rich_list_wealth, hni_tax_planning |
+| Trading & stocks (9) | fno_trading, stock_moves, smallcap_penny, corporate_actions, earnings_results, trading_psychology, short_seller_fraud, finfluencers, crypto |
 
 ### Matching rules
 
@@ -298,8 +295,7 @@ Events never change heat.
 8. **Mapping:** if 60% or more of the phrase's items match a single topic, the phrase is attached to that topic and shown in its brief as a spiking phrase. Otherwise it creates or refreshes the emerging topic `emerging:<slug>`:
    - name: the phrase in title case;
    - bucket: the most common bucket among its items' matched topics (default markets);
-   - risk: restricted if any item contains a `stock_vocab` word (shares, stock, ipo, nse, bse, target, stake, listing), otherwise careful;
-   - angles: the education-safe set.
+   - angles: the default emerging set (hot_take_news, explainer, timeline, myth_bust, faq).
 9. Emerging topics are scored like static topics. Their items are those whose normalized title contains the phrase. They use a news prior of μ0 = 0.5, σ0 = 1.0 and expire 48 h after last activity.
 
 ## 10. Scoring, stages and alert rule
@@ -378,11 +374,11 @@ When several topics qualify in one run they are processed in descending heat ord
 
 All thresholds, weights, priors, caps and cooldowns live in `settings.yaml`.
 
-## 11. Briefs, angles, compliance
+## 11. Briefs and angles
 
 ### Brief contents (in order)
 
-1. Topic name, bucket, compliance label, stage and urgency.
+1. Topic name, bucket, stage and urgency.
 2. **Headline:** the most recent matched news title, or the trending title.
 3. **Why now:** up to 6 evidence lines, each with a number and a link. For example:
    - "Google Trends India: 'gold rate' 50K+ searches, trending since 09:40 IST"
@@ -395,14 +391,12 @@ All thresholds, weights, priors, caps and cooldowns live in `settings.yaml`.
 4. **Spiking phrases** attached to the topic, if any.
 5. **Angles:** the top 3 angle types, each with its LinkedIn, X and Instagram format and one filled hook.
 6. **Hooks working right now:** up to 3 matched YouTube videos from the last 72 h with outlier ≥ 2.0: title, creator, Short or long, score, link.
-7. **Compliance:** label and notes (below).
 
 ### Angle playbook (angles.yaml)
 
 ```yaml
 - id: myth_bust
   name: Myth vs fact
-  education_safe: true
   formats:
     linkedin: "Text post: 3 myths, one line each, plus the fact (150-250 words)"
     x: "Thread: one myth per post, 5-6 posts"
@@ -412,15 +406,13 @@ All thresholds, weights, priors, caps and cooldowns live in `settings.yaml`.
     - "3 myths about {topic} I hear every week."
 ```
 
-There are 15 angle types. Education-safe types are marked with *.
+There are 15 angle types: hot_take_news, explainer, before_after_rule, myth_bust, data_compare, history_lesson, mistakes_list, checklist, faq, red_flags, should_you, what_if_calculator, contrarian_take, timeline, poll.
 
-hot_take_news, explainer*, before_after_rule*, myth_bust*, data_compare, history_lesson*, mistakes_list*, checklist*, faq*, red_flags*, should_you, what_if_calculator, contrarian_take, timeline*, poll*
-
-Hook placeholders are `{topic}` (topic name or phrase) and `{headline}`. Poll hooks ask about behaviour, never price predictions.
+Hook placeholders are `{topic}` (topic name or phrase) and `{headline}`.
 
 ### Angle selection
 
-- **Candidates:** the topic's `angles` list. For restricted topics, only education-safe types.
+- **Candidates:** the topic's `angles` list; emerging topics use the default emerging set (section 9).
 - **Score:** scoreboard multiplier × stage weight.
   - Scoreboard multiplier: the angle type's median YouTube outlier score over 7 days, across shorts and long videos combined, or 1.0 if it has fewer than 3 videos.
   - Stage weight: Emerging gives ×1.3 to hot_take_news, explainer and before_after_rule. Peaking gives ×1.3 to myth_bust, data_compare, contrarian_take and mistakes_list. Everything else is ×1.0.
@@ -447,23 +439,11 @@ Each tracked video title is classified by ordered, case-insensitive regex rules 
 
 The rules are refined against fixtures during implementation. For each angle type × format with 3 or more videos in the last 7 days, the scoreboard records the median outlier score and an example title.
 
-### Compliance labels (plain text, no colors)
-
-| Label | Notes shown in the brief |
-|---|---|
-| General | News or education. Keep it factual; no product pitch needed. |
-| Careful | Involves products, rates or returns. No return promises and no "guaranteed", "assured" or "risk-free" language. Label example numbers as illustrations. Show past performance only if PaRRVA-verified. If a security or fund is named, add: "The securities quoted are for illustration only and are not recommendatory." |
-| Restricted | Education only. No buy/sell/hold, target or stop-loss, and no tips or free calls. Do not combine price data less than 30 days old with forward-looking statements (SEBI price-data norms, effective 1 Jul 2026). Name securities only as illustrations, with the illustration disclaimer. |
-
-**Footer on every email.** `settings.yaml` holds `firm.name` and `firm.sebi_reg_no`. When both are set, the footer quotes them verbatim; otherwise it says "your registered name and SEBI registration number".
-
-> Before posting: put the registered name and SEBI registration number at the start of every securities-market post and in the profile bio (SEBI, from 1 May 2026). Include "Investment in securities market are subject to market risks. Read all the related documents carefully before investing." No testimonials, no "SEBI-approved" claims, no superlatives such as "best" or "No. 1 adviser". Archive posts for 5 years. SEBI approved a new Common Advertisement Code on 24 Sep 2026 (circular pending), so confirm current rules with your compliance adviser.
-
 ## 12. Email
 
 - **Transport:** SMTP `smtp.gmail.com:587` with STARTTLS, logging in with `SMTP_USER` / `SMTP_APP_PASSWORD`. Use a dedicated Google account with 2-Step Verification and an app password. Recipients come from `ALERT_TO` (comma-separated). Gmail's free limit is 500 recipients per day.
 - **Style:** neutral styling (black and grey text, simple tables), no colors that carry meaning, no emoji. HTML plus a plain-text alternative.
-- **HOT email:** subject `HOT [<bucket name>] <topic name>: <headline truncated to 60 chars> — post within <N>h`. Bucket names are Personal finance, Markets & macro, Wealth/HNI, Trading & stocks. The body is the brief (section 11) followed by the footer.
+- **HOT email:** subject `HOT [<bucket name>] <topic name>: <headline truncated to 60 chars> — post within <N>h`. Bucket names are Personal finance, Markets & macro, Wealth/HNI, Trading & stocks. The body is the brief (section 11).
 - **Digest:** subject `Radar digest <DD Mon> — <N> trends`. Sections:
   1. **Top trends, last 24 h (up to 10):** topic, peak heat, current stage, alert status (sent / capped / none), one evidence line, link.
   2. **Near misses (up to 5):** topics whose peak heat reached W or more without a HOT alert.
@@ -518,7 +498,7 @@ The rules are refined against fixtures during implementation. For each angle typ
   - phrases: tokenize, chunk, burst ratio, same-hour baseline, finance context, subsumption, mapping to topic vs emerging.
   - scorer: priors and hour window, implicit zeros, bonuses, heat, stages, alert rule.
   - hooks: classifier ordering.
-  - briefs: angle selection respects risk, hooks filled, compliance notes.
+  - briefs: angle selection (candidates, scoreboard multiplier, stage weight, tie-break), hooks filled.
   - emailer: subject formats, all sections present, no emoji in rendered output.
   - store: schema creation, pruning.
 - **Scenario tests (synthetic run sequences through scorer):**
@@ -545,10 +525,5 @@ The rules are refined against fixtures during implementation. For each angle typ
 - X API pricing (pay-per-use): https://docs.x.com/x-api/getting-started/pricing
 - Reddit unauthenticated JSON blocked, RSS working: https://dev.to/listwright/reddits-json-returns-403-in-2026-the-rss-feeds-still-answer-1gg5
 - LinkedIn scraping litigation (Proxycurl): https://www.socialmediatoday.com/news/linkedin-wins-legal-case-data-scrapers-proxycurl/756101/
-- SEBI Master Circular for Investment Advisers (27 Jun 2025): https://www.sebi.gov.in/legal/master-circulars/jun-2025/master-circular-for-investment-advisers_94821.html
-- SEBI registered name and number on social media (Feb 2026): https://www.sebi.gov.in/legal/circulars/feb-2026/ease-of-doing-investment-eodi-disclosure-of-registered-name-and-registration-number-by-sebi-regulated-entities-and-their-agents-on-social-media-platforms-smps-_100005.html
-- SEBI price data for educational purposes (May 2026): https://www.sebi.gov.in/legal/circulars/may-2026/norms-for-sharing-and-usage-of-price-data-for-educational-purposes_101293.html
-- SEBI PaRRVA: https://www.sebi.gov.in/legal/circulars/apr-2025/recognition-and-operationalization-of-past-risk-and-return-verification-agency-parrva-_93321.html
-- SEBI Board decisions of 24 Sep 2026 (Common Advertisement Code): https://www.sebi.gov.in/media-and-notifications/press-releases/sep-2026/key-decisions-taken-in-the-sebi-board-meeting-dated-24th-september-2026_104725.html
 - RBI MPC schedule FY2026-27: https://www.rbi.org.in/scripts/BS_PressReleaseDisplay.aspx?prid=62422
 - FOMC calendar: https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm
