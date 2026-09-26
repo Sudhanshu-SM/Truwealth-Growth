@@ -1,5 +1,7 @@
 radar.db
 radar.db-*
+*.db
+*.corrupt
 out/
 __pycache__/
 *.pyc
