@@ -34,3 +34,16 @@ python -m radar digest --dry-run --db local.db
 - YouTube channels: `config/channels.yaml` (the `id` is the channel id that starts with `UC`)
 - Dated events for the digest: `config/events.yaml`
 - Feeds and queries: `config/sources.yaml`
+
+## Ghostwriter handoff (optional)
+
+The radar can also hand topics to the LinkedIn ghostwriter (private repository Truwealth-Ghostwriter). It appends one row per HOT, capped or rising topic to the "Radar topics" tab of the ghostwriter's Google Sheet, placing values by header name. It never creates the tab and never edits rows.
+
+A rising topic is Emerging or Peaking, at or above the watch threshold, with no alert this run and none in the last 24 hours. Each one is sent at most once every 24 hours, and at most 10 are sent per day. The limits are under `handoff` in `config/settings.yaml`.
+
+Add two Actions secrets:
+
+- `GHOST_SHEET_ID`: the ghostwriter Sheet's id (the long part of its URL)
+- `RADAR_SA_JSON`: the JSON key of the `radar-inbox` service account. Tab protection, set up from the ghostwriter app, lets it edit only the Radar topics tab.
+
+Without the secrets the radar behaves exactly as before. Handoff errors are logged and never fail a run.

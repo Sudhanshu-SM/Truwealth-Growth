@@ -4,9 +4,9 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
-from radar import briefs, emailer, hooks, phrases, scorer
+from radar import briefs, emailer, handoff, hooks, phrases, scorer
 from radar import digest as digest_mod
 from radar.collectors import Collector, Context, run_all
 from radar.collectors import google_news, google_trends, markets, news_feeds, reddit, regulators, x_trends, youtube
@@ -60,8 +60,11 @@ def fresh(signals: list[Signal], now: datetime, max_age_hours: float) -> list[Si
 
 
 def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, out_dir: Path,
-        env: Mapping[str, str], collectors: Mapping[str, Collector] | None = None) -> int:
-    """One radar cycle. Returns the process exit code."""
+        env: Mapping[str, str], collectors: Mapping[str, Collector] | None = None,
+        push: Callable[..., bool] = handoff.push_decision) -> int:
+    """One radar cycle. Returns the process exit code.
+
+    `push` hands each HOT, capped and rising topic to the ghostwriter's Radar topics tab."""
     s = cfg.settings
     run_index = int(store.get_kv("run_index") or 0)
     selected = select_collectors(COLLECTORS if collectors is None else collectors, store, now, s)
@@ -91,7 +94,8 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
 
     catalog = digest_mod.topic_catalog(store.conn, cfg, now)
     scores = scorer.score_run(store.conn, list(catalog.values()), now, s)
-    if warming_up(store, now, s):
+    warm = warming_up(store, now, s)
+    if warm:
         log.info("warm-up: collecting history, HOT alerts start %d h after the first run", s["alerts"]["warmup_hours"])
         decisions = []
     else:
@@ -105,6 +109,7 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
         subject, text, html = emailer.render_hot(brief)
         if kind == "capped":
             scorer.record_alert(store.conn, topic.id, "capped", now, score.heat, subject)
+            push(brief, "capped", now, env)
             continue
         try:
             if dry_run:
@@ -116,12 +121,15 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
             email_failed = True
             continue
         scorer.record_alert(store.conn, topic.id, "hot", now, score.heat, subject)
+        push(brief, "hot", now, env)
+    rising = 0 if warm else handoff.push_rising(
+        store, cfg, scores, {sc.topic_id for sc, _ in decisions}, catalog, now, env, multipliers, spikes, push=push)
 
     phrases.prune_singletons(store.conn, now)
     store.prune(now, s["retention"])
     store.set_kv("run_index", str(run_index + 1))
-    log.info("run done: %d signals, %d new items, %d spikes, %d scored topics, %d alert decisions",
-             len(signals), len(new_items), len(spikes), len(scores), len(decisions))
+    log.info("run done: %d signals, %d new items, %d spikes, %d scored topics, %d alert decisions, %d rising sent",
+             len(signals), len(new_items), len(spikes), len(scores), len(decisions), rising)
     return 1 if all_failed or email_failed else 0
 
 

@@ -34,6 +34,10 @@ alerts:
   daily_cap: 4
   urgency_hours: {Emerging: 3, Peaking: 1}
 
+handoff:                       # rows for the ghostwriter's Radar topics tab (radar/handoff.py)
+  rising_daily_cap: 10         # rising topics handed off per IST day
+  rising_repeat_hours: 24      # the same topic goes as rising at most this often
+
 phrases:
   min_ratio: 4.0
   min_items: 3
