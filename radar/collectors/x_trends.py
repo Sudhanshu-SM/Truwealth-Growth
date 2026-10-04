@@ -4,7 +4,7 @@ from __future__ import annotations
 from datetime import datetime
 from urllib.parse import quote
 
-from selectolax.parser import HTMLParser
+from selectolax.lexbor import LexborHTMLParser as HTMLParser
 
 from radar.collectors import Context
 from radar.models import Signal
