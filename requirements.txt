@@ -1,5 +1,6 @@
+# Each line caps the next major version: selectolax 1.0 broke every run from 3 to 4 Oct 2026 by dropping an API.
 httpx>=0.27,<1
-selectolax>=0.3.21
-PyYAML>=6.0.1
-Jinja2>=3.1.4
+selectolax>=0.3.21,<2
+PyYAML>=6.0.1,<7
+Jinja2>=3.1.4,<4
 gspread>=6.1,<7
