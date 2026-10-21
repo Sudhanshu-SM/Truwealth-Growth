@@ -36,6 +36,9 @@ jobs:
           ALERT_TO: ${{ secrets.ALERT_TO }}
           GHOST_SHEET_ID: ${{ secrets.GHOST_SHEET_ID }}
           RADAR_SA_JSON: ${{ secrets.RADAR_SA_JSON }}
+          # Unset secrets arrive empty, which the radar treats as "not configured".
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         # Until the email secrets exist, keep building history without sending (and without failing).
         run: |
           if [ -z "$SMTP_USER" ]; then

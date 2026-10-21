@@ -46,4 +46,11 @@ Add two Actions secrets:
 - `GHOST_SHEET_ID`: the ghostwriter Sheet's id (the long part of its URL)
 - `RADAR_SA_JSON`: the JSON key of the `radar-inbox` service account. Tab protection, set up from the ghostwriter app, lets it edit only the Radar topics tab.
 
+The same rows also go into the `radar_topics` table of the ghostwriter's Supabase project ("Social-Media"), which every person's Studio reads. Sheet and Supabase run side by side; either, both or neither can be set up. For Supabase add:
+
+- `SUPABASE_URL`: `https://baesjczstciwoyqpzjiw.supabase.co`
+- `SUPABASE_SERVICE_ROLE_KEY`: the project's secret key (`sb_secret_…`). It is sent in the `apikey` header only.
+
+A topic id already in the table is skipped, not an error.
+
 Without the secrets the radar behaves exactly as before. Handoff errors are logged and never fail a run.

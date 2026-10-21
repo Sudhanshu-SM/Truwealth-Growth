@@ -1,11 +1,14 @@
+import json
 import sys
 import types
 from datetime import timedelta
 
+import httpx
 from helpers import NOW
 from test_pipeline import CFG, fake_collectors, past_warmup
 
 from radar import handoff, pipeline, scorer
+from radar.http import Http
 from radar.models import Brief, Topic, TopicScore
 from radar.store import Store
 from radar.timeutil import ist
@@ -162,6 +165,73 @@ def test_push_swallows_errors_and_logs_only_their_type(caplog):
                                  opener=lambda sid, sa: BrokenAppend(SHEET_HEADER)) is False
     assert "RuntimeError" in caplog.text and "ConnectionError" in caplog.text
     assert "secret-token" not in caplog.text
+
+
+# --- Supabase radar_topics -------------------------------------------------------------------------------------
+
+SUPA_ENV = {"SUPABASE_URL": "https://proj.supabase.test/", "SUPABASE_SERVICE_ROLE_KEY": "sb_secret_fake"}
+
+
+def fake_http(status=201, error=None):
+    """An Http whose requests go to a fake transport; returns (http, list of requests sent)."""
+    sent = []
+
+    def handle(request):
+        sent.append(request)
+        if error:
+            raise error
+        return httpx.Response(status)
+
+    return Http(retry_wait=0, client=httpx.Client(transport=httpx.MockTransport(handle))), sent
+
+
+def test_supabase_insert_request():
+    http, sent = fake_http()
+    assert handoff.push_supabase(make_brief(), "hot", NOW, SUPA_ENV, http=http) is True
+    (req,) = sent
+    assert (req.method, req.url.path, dict(req.url.params)) == ("POST", "/rest/v1/radar_topics", {"on_conflict": "id"})
+    assert req.url.host == "proj.supabase.test"
+    assert req.headers["apikey"] == "sb_secret_fake" and "authorization" not in req.headers
+    assert req.headers["prefer"] == "resolution=ignore-duplicates,return=minimal"
+    (row,) = json.loads(req.content)
+    assert tuple(row) == handoff.RADAR_COLUMNS
+    expected = handoff.radar_row(make_brief(), "hot", NOW)
+    assert row == {**expected, "found_at": "2026-09-26T08:00:00+00:00", "heat": 12.0, "market_move": True}
+    no_market = handoff.supabase_row(make_brief([("News: 3", None)]), "rising", NOW)
+    assert no_market["market_move"] is False
+
+
+def test_supabase_needs_both_settings():
+    http, sent = fake_http()
+    for env in ({}, ENV, {"SUPABASE_URL": "https://p.test"}, {"SUPABASE_SERVICE_ROLE_KEY": "k"},
+                {"SUPABASE_URL": " ", "SUPABASE_SERVICE_ROLE_KEY": "k"}):
+        assert handoff.push_supabase(make_brief(), "hot", NOW, env, http=http) is False
+    assert sent == []
+
+
+def test_supabase_swallows_errors_and_never_logs_the_key(caplog):
+    tries = []
+    for status, error in ((401, None), (500, None), (201, httpx.ConnectError("down"))):
+        http, sent = fake_http(status, error)
+        assert handoff.push_supabase(make_brief(), "hot", NOW, SUPA_ENV, http=http) is False
+        tries.append(len(sent))
+    assert tries == [1, 2, 2]  # 5xx and connection errors are retried once (safe: duplicates are ignored)
+    assert "HTTPStatusError 401" in caplog.text and "HTTPStatusError 500" in caplog.text
+    assert "ConnectError" in caplog.text
+    assert "sb_secret_fake" not in caplog.text
+
+
+def test_push_decision_writes_to_both_side_by_side():
+    ws, (http, sent) = FakeWorksheet(SHEET_HEADER), fake_http()
+    both = {**ENV, **SUPA_ENV}
+    assert handoff.push_decision(make_brief(), "hot", NOW, both, opener=lambda sid, sa: ws, http=http) is True
+    assert len(ws.rows) == 2 and len(sent) == 1
+    # one destination failing still counts as handed off, so the other does not get a duplicate on retry
+    broken, _ = fake_http(401)
+    assert handoff.push_decision(make_brief(), "hot", NOW, both, opener=lambda sid, sa: ws, http=broken) is True
+    assert handoff.push_decision(make_brief(), "hot", NOW, both, opener=lambda sid, sa: None, http=http) is True
+    assert handoff.push_decision(make_brief(), "hot", NOW, SUPA_ENV, opener=lambda sid, sa: None, http=http) is True
+    assert handoff.push_decision(make_brief(), "hot", NOW, SUPA_ENV, http=broken) is False
 
 
 # --- C2: rising topics -----------------------------------------------------------------------------------------

@@ -1,8 +1,10 @@
-"""Hand radar topics to the LinkedIn ghostwriter: one row each in the "Radar topics" tab of its Google Sheet.
+"""Hand radar topics to the LinkedIn ghostwriter: one row each in the "Radar topics" tab of its Google Sheet, and
+in the shared `radar_topics` table of its Supabase project. Both run side by side until the Sheet is retired.
 
-Optional: without GHOST_SHEET_ID and RADAR_SA_JSON nothing is written. The ghostwriter owns the tab (its founder-app
-spec, section 6.2): the radar never creates it and never edits rows; it appends, placing values by header name.
-Errors are logged and swallowed, so the radar never fails because of the ghostwriter."""
+Each is optional: the Sheet needs GHOST_SHEET_ID and RADAR_SA_JSON, Supabase needs SUPABASE_URL and
+SUPABASE_SERVICE_ROLE_KEY. The ghostwriter owns the tab (its founder-app spec, section 6.2): the radar never creates
+it and never edits rows; it appends, placing values by header name. In Supabase a row whose id is already there is
+left alone. Errors are logged and swallowed, so the radar never fails because of the ghostwriter."""
 from __future__ import annotations
 
 import json
@@ -11,6 +13,7 @@ from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Callable, Mapping, Sequence
 
 from radar import briefs
+from radar.http import Http
 from radar.models import Brief, Topic, TopicScore
 from radar.timeutil import from_iso, ist, ist_date, to_iso
 
@@ -60,7 +63,43 @@ def open_sheet(sheet_id: str, sa_json: str) -> Any:
 
 
 def push_decision(brief: Brief, kind: str, now: datetime, env: Mapping[str, str],
-                  opener: Callable[[str, str], Any] = open_sheet) -> bool:
+                  opener: Callable[[str, str], Any] = open_sheet, http: Http | None = None) -> bool:
+    """Hand one topic to every configured destination. True when at least one took it, so a topic the Sheet already
+    has is not appended again on the next run just because Supabase failed (or the other way round)."""
+    sheet = push_sheet(brief, kind, now, env, opener)
+    return push_supabase(brief, kind, now, env, http) or sheet
+
+
+def supabase_row(brief: Brief, kind: str, now: datetime) -> dict[str, Any]:
+    """radar_row typed for the radar_topics table: found_at as ISO with offset, heat a number, market_move a bool."""
+    row: dict[str, Any] = radar_row(brief, kind, now)
+    row.update(found_at=to_iso(now), heat=round(brief.score.heat, 1), market_move=row["market_move"] == "yes")
+    return row
+
+
+def push_supabase(brief: Brief, kind: str, now: datetime, env: Mapping[str, str], http: Http | None = None) -> bool:
+    """Insert one topic into radar_topics through PostgREST. True when the request succeeded (a duplicate id too)."""
+    url, key = env.get("SUPABASE_URL", "").strip().rstrip("/"), env.get("SUPABASE_SERVICE_ROLE_KEY", "").strip()
+    if not (url and key):
+        return False
+    client = http or Http()
+    try:
+        # The sb_secret_ key is not a JWT: it goes in apikey only, never as Authorization: Bearer.
+        client.request("POST", f"{url}/rest/v1/radar_topics", params={"on_conflict": "id"},
+                       json=[supabase_row(brief, kind, now)],
+                       headers={"apikey": key, "Prefer": "resolution=ignore-duplicates,return=minimal"})
+        return True
+    except Exception as exc:  # never let the ghostwriter break the radar
+        status = getattr(getattr(exc, "response", None), "status_code", "")
+        log.warning("supabase handoff failed for %s: %s %s", brief.topic.id, type(exc).__name__, status)
+        return False
+    finally:
+        if http is None:
+            client.close()
+
+
+def push_sheet(brief: Brief, kind: str, now: datetime, env: Mapping[str, str],
+               opener: Callable[[str, str], Any] = open_sheet) -> bool:
     """Append one topic to the Radar topics tab. Returns True when a row was written."""
     sheet_id, sa_json = env.get("GHOST_SHEET_ID", "").strip(), env.get("RADAR_SA_JSON", "").strip()
     if not (sheet_id and sa_json):
