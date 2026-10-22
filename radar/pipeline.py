@@ -64,7 +64,7 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
         push: Callable[..., bool] = handoff.push_decision) -> int:
     """One radar cycle. Returns the process exit code.
 
-    `push` hands each HOT, capped and rising topic to the ghostwriter's Radar topics tab."""
+    `push` hands each HOT, capped and rising topic to the ghostwriter (its Radar topics tab and/or Supabase)."""
     s = cfg.settings
     run_index = int(store.get_kv("run_index") or 0)
     selected = select_collectors(COLLECTORS if collectors is None else collectors, store, now, s)

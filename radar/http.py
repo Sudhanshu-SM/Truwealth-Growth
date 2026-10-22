@@ -17,9 +17,13 @@ class Http:
         self.retry_wait = retry_wait
 
     def get(self, url: str, params: dict | None = None) -> httpx.Response:
+        return self.request("GET", url, params=params)
+
+    def request(self, method: str, url: str, **kwargs) -> httpx.Response:
+        """Retries too, so only send requests that are safe to repeat."""
         for attempt in (1, 2):
             try:
-                resp = self.client.get(url, params=params)
+                resp = self.client.request(method, url, **kwargs)
             except httpx.TransportError:
                 if attempt == 2:
                     raise
