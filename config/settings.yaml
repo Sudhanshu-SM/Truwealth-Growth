@@ -43,7 +43,8 @@ phrases:
   min_items: 3
   min_feeds: 2
   baseline_floor: 0.25
-  finance_share: 0.5
+  genre_share: 0.5             # a phrase needs a genre (from its source or a matched topic) on this share of its items
+  genre_common_share: 0.3      # a new emerging topic gets the genres on this share of its items, at most 3
   subsume_share: 0.8
   map_share: 0.6
   min_chars: 5

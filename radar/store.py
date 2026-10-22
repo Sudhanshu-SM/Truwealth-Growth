@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
@@ -153,15 +154,19 @@ class Store:
         self.conn.close()
 
     def add_items(self, signals: Iterable[Signal], now: datetime) -> list[tuple[str, Signal]]:
-        """Insert unseen items; refresh title, metrics and last_seen_at of known ones. Returns the new ones."""
+        """Insert unseen items; refresh title, metrics and last_seen_at of known ones. Returns the new ones.
+
+        Signals with the same id (one headline found by several searches) are one item with all of their genres, in
+        first-seen order. A row already stored keeps the genres it has."""
         now_iso = to_iso(now)
         new: list[tuple[str, Signal]] = []
-        seen: set[str] = set()
+        unique: dict[str, Signal] = {}
         for sig in signals:
             iid = item_id(sig)
-            if iid in seen:
-                continue
-            seen.add(iid)
+            if iid in unique:
+                sig = replace(unique[iid], genres=tuple(dict.fromkeys(unique[iid].genres + sig.genres)))
+            unique[iid] = sig
+        for iid, sig in unique.items():
             metrics = json.dumps(sig.metrics, sort_keys=True)
             updated = self.conn.execute(
                 "UPDATE items SET title = ?, metrics_json = ?, last_seen_at = ? WHERE id = ?",

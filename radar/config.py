@@ -28,7 +28,6 @@ class Config:
     settings: dict[str, Any]
     topics: tuple[Topic, ...]
     topic_map: dict[str, Topic]
-    finance_vocab: frozenset[str]
     angles: dict[str, Angle]
     sources: dict[str, Any]
     channels: tuple[dict[str, str], ...]
@@ -109,7 +108,6 @@ def load_config(config_dir: Path = DEFAULT_DIR) -> Config:
         settings=_load(config_dir / "settings.yaml"),
         topics=tuple(topics),
         topic_map=topic_map,
-        finance_vocab=frozenset(str(w).lower() for w in topics_raw["finance_vocab"]),
         angles=angles,
         sources=sources,
         channels=tuple(_load(config_dir / "channels.yaml")["channels"] or ()),

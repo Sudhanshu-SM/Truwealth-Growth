@@ -31,7 +31,6 @@ def test_real_config_loads():
     assert len({c["id"] for c in cfg.channels}) == len(cfg.channels)
     assert len(cfg.sources["google_news"]["queries"]) >= 11 + 23
     assert len(cfg.sources["news_feeds"]) == 12
-    assert "sensex" in cfg.finance_vocab
     assert "on" in cfg.settings["phrases"]["stopwords"].split()
 
 

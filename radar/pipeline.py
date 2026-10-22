@@ -89,7 +89,7 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
             topic_ids.add(sig.topic_hint)
         if topic_ids:
             store.add_item_topics(item_id, sorted(topic_ids))
-    phrases.link_emerging(store.conn, new_items,
+    phrases.link_emerging(store.conn, cfg, new_items,
                           phrases.active_emerging(store.conn, now, s["phrases"]["emerging_ttl_hours"]), now)
     spikes = phrases.detect(store.conn, cfg, new_items, now)
 

@@ -745,6 +745,3 @@ topics:
     genres: [environment]
     keywords: ["climate change", "global warming", "COP30", "COP31", "carbon emissions", "net zero", "greenhouse gas", "renewable energy", "solar power", "green hydrogen", "wildlife", "tiger reserve", "Project Tiger", "man-animal conflict", "national park", "deforestation", "forest cover", "single-use plastic", "biodiversity", "glacier", "sea level"]
     angles: [explainer, data_compare, myth_bust, timeline, faq, history_lesson]
-
-# Words that mark text as finance-related (lowercase; used by new-phrase detection).
-finance_vocab: [market, markets, stock, stocks, share, shares, sensex, nifty, ipo, tax, taxes, rbi, sebi, loan, loans, bank, banks, fund, funds, invest, investing, investor, investors, investment, rupee, crore, lakh, price, prices, rate, rates, gold, silver, crypto, bitcoin, gdp, inflation, profit, earnings, dividend, insurance, salary, emi, upi, gst, budget, economy, finance, financial, money, wealth, trading, trader, traders, nse, bse, sip, mutual, शेयर, बाजार, निवेश, टैक्स, रुपया, सोना, बैंक]

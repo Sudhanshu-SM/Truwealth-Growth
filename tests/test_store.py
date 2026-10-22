@@ -120,3 +120,23 @@ def test_items_keep_their_genres(tmp_path):
     st.add_items([Signal(source="google_news", source_type="news", feed="gn:x", title="IPL auction",
                          url=None, published_at=NOW, genres=("cricket", "sports"))], NOW)
     assert st.conn.execute("SELECT genres FROM items").fetchone()[0] == "cricket,sports"
+
+
+def test_same_headline_from_two_searches_keeps_both_genres(tmp_path):
+    st = Store(tmp_path / "r.db")
+    ((_, merged),) = st.add_items([sig(genres=("business",)), sig(genres=("stock_market",), feed="gn:et")], NOW)
+    assert merged.genres == ("business", "stock_market")
+    assert st.conn.execute("SELECT genres FROM items").fetchone()[0] == "business,stock_market"
+    # a row already stored is left as it is, whatever a later search says
+    assert st.add_items([sig(genres=("crypto",))], NOW + timedelta(minutes=15)) == []
+    assert st.conn.execute("SELECT genres FROM items").fetchone()[0] == "business,stock_market"
+
+
+def test_merged_genres_keep_first_seen_order_without_repeats(tmp_path):
+    st = Store(tmp_path / "r.db")
+    (_, merged), (_, other) = st.add_items([sig("Gold rallies", genres=("economy", "wealth")),
+                                            sig("Gold rallies", genres=("wealth", "crypto")),
+                                            sig("Oscar race", genres=("movies",))], NOW)
+    assert merged.genres == ("economy", "wealth", "crypto") and other.genres == ("movies",)
+    stored = st.conn.execute("SELECT genres FROM items WHERE title = 'Gold rallies'").fetchone()[0]
+    assert stored == "economy,wealth,crypto"
