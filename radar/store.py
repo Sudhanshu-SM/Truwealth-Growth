@@ -114,6 +114,12 @@ CREATE TABLE IF NOT EXISTS kv (
 );
 """
 
+# Every emerging topic from before genres passed the finance gate, so each gets a finance genre from its bucket (the
+# Supabase migration maps radar_topics rows the same way).
+EMERGING_GENRES_FROM_BUCKET = (
+    "UPDATE emerging_topics SET genres = CASE bucket WHEN 'personal_finance' THEN 'personal_finance' "
+    "WHEN 'markets' THEN 'economy' WHEN 'wealth' THEN 'wealth' WHEN 'trading' THEN 'stock_market' ELSE 'economy' END")
+
 
 def item_id(sig: Signal) -> str:
     """Stable id per item (spec section 6, item identity)."""
@@ -144,10 +150,15 @@ class Store:
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
         # `genres` is added here rather than in SCHEMA, so a new database and one restored from the Actions cache
-        # (written before genres existed) end up the same.
+        # (written before genres existed) end up the same. The old emerging topics are backfilled in the same
+        # transaction as their new column, so a crash cannot leave them without genres for good.
         for table in ("items", "emerging_topics"):
             if "genres" not in {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})")}:
+                self.conn.execute("BEGIN")
                 self.conn.execute(f"ALTER TABLE {table} ADD COLUMN genres TEXT NOT NULL DEFAULT ''")
+                if table == "emerging_topics":
+                    self.conn.execute(EMERGING_GENRES_FROM_BUCKET)
+                self.conn.commit()
 
     def close(self) -> None:
         self.conn.commit()

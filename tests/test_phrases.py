@@ -32,6 +32,11 @@ def story(titles, genres=()):
     return [news(t, f"feed{i}", genres=genres) for i, t in enumerate(titles)]
 
 
+def linked(st, topic_id):
+    """The ids of the items linked to a topic."""
+    return {r["item_id"] for r in st.conn.execute("SELECT item_id FROM item_topics WHERE topic_id = ?", (topic_id,))}
+
+
 def live_zeta_topic(st, genres):
     """The Zeta Bank emerging topic as the radar stores it, with the given comma-joined genres."""
     st.conn.execute("INSERT INTO emerging_topics (topic_id, phrase, name, bucket, genres, created_at, last_seen_at) "
@@ -97,9 +102,26 @@ def test_items_without_source_genres_count_through_the_static_topics_they_matche
     assert topic.genres == ("economy", "personal_finance") and topic.bucket == "markets"   # banking_news's own
 
 
-def test_emerging_topic_from_an_old_database_has_no_genres(tmp_path):
+def test_new_emerging_topic_links_only_items_that_share_a_genre_with_it(tmp_path):
+    # three stock_market items and a politics one carry the phrase, and so does a trend item with no genres
     st = Store(tmp_path / "r.db")
-    assert [t.genres for t in live_zeta_topic(st, "")] == [()]
+    genres = [("stock_market",)] * 3 + [("politics",)]
+    new = st.add_items([news(t, f"feed{i}", genres=g) for i, (t, g) in enumerate(zip(ZETA, genres))]
+                       + [news("Zeta Bank collapse", "trends24", source_type="x_trend")], NOW)
+    detect(st.conn, CFG, new, NOW)
+    (topic,) = active_emerging(st.conn, NOW, 48)
+    assert topic.genres == ("stock_market",)
+    assert linked(st, topic.id) == {new[0][0], new[1][0], new[2][0], new[4][0]}      # not the politics item, new[3]
+
+
+def test_redetected_emerging_topic_links_by_the_genres_it_was_created_with(tmp_path):
+    # the story has grown a politics side (half the items now), but the topic stays a stock_market one
+    st = Store(tmp_path / "r.db")
+    live_zeta_topic(st, "stock_market")
+    genres = [("stock_market",)] * 2 + [("politics",)] * 2
+    new = st.add_items([news(t, f"feed{i}", genres=g) for i, (t, g) in enumerate(zip(ZETA, genres))], NOW)
+    detect(st.conn, CFG, new, NOW)
+    assert linked(st, "emerging:zeta-bank-collapse") == {new[0][0], new[1][0]}
 
 
 def test_spike_attaches_to_matching_topic(tmp_path):

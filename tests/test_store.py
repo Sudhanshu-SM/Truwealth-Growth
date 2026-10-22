@@ -115,6 +115,30 @@ def test_old_database_gains_genre_columns(tmp_path):
     assert tuple(st.conn.execute("SELECT title, genres FROM items").fetchone()) == ("Old", "")
 
 
+def test_old_emerging_topics_get_a_finance_genre_from_their_bucket(tmp_path):
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    with old:
+        old.executescript(OLD_ITEMS_AND_EMERGING_SCHEMA)
+        old.executemany("INSERT INTO emerging_topics (topic_id, phrase, name, bucket, created_at, last_seen_at) "
+                        "VALUES (?, ?, ?, ?, 'x', 'x')",
+                        [(f"emerging:{b}", b, b, b)
+                         for b in ("personal_finance", "markets", "wealth", "trading", "odd")])
+    old.close()
+
+    def genres_by_phrase(store):
+        return {r["phrase"]: r["genres"] for r in store.conn.execute("SELECT phrase, genres FROM emerging_topics")}
+
+    st = Store(path)
+    assert genres_by_phrase(st) == {"personal_finance": "personal_finance", "markets": "economy", "wealth": "wealth",
+                                    "trading": "stock_market", "odd": "economy"}
+    # a later run writes genres of its own, which opening the file again must not overwrite
+    st.conn.execute("UPDATE emerging_topics SET genres = 'cricket' WHERE phrase = 'markets'")
+    st.close()
+    again = genres_by_phrase(Store(path))
+    assert again["markets"] == "cricket" and again["wealth"] == "wealth"
+
+
 def test_items_keep_their_genres(tmp_path):
     st = Store(tmp_path / "r.db")
     st.add_items([Signal(source="google_news", source_type="news", feed="gn:x", title="IPL auction",

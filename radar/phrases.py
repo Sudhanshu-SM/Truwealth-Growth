@@ -71,7 +71,7 @@ def record_counts(conn: sqlite3.Connection, new_items: list[tuple[str, Signal]],
 
 
 def _split(genres: str) -> tuple[str, ...]:
-    """The genre ids in a comma-joined `genres` column (an old database's rows have none)."""
+    """The genre ids in a comma-joined `genres` column (an item restored from an old cache has none)."""
     return tuple(g for g in genres.split(",") if g)
 
 
@@ -201,8 +201,13 @@ def detect(conn: sqlite3.Connection, cfg: Config, new_items: list[tuple[str, Sig
                 "INSERT INTO emerging_topics (topic_id, phrase, name, bucket, genres, created_at, last_seen_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(topic_id) DO UPDATE SET last_seen_at = excluded.last_seen_at",
                 (topic_id, ph, name, bucket or genres[0], ",".join(genres), to_iso(now), to_iso(now)))
+            # Like link_emerging, link only the items that share a genre with the topic as stored: for a topic found
+            # earlier that is not necessarily the `genres` just computed.
+            row = conn.execute("SELECT genres FROM emerging_topics WHERE topic_id = ?", (topic_id,)).fetchone()
+            stored = _split(row["genres"])
             conn.executemany("INSERT OR IGNORE INTO item_topics (item_id, topic_id) VALUES (?, ?)",
-                             [(i, topic_id) for i in sorted(ids)])
+                             [(i, topic_id) for i in sorted(ids)
+                              if genre_ok(stored, _split(info[i]["genres"]), cfg.finance_genres)])
         spikes.append(PhraseSpike(ph, set(ids), stats[ph][0], stats[ph][1], topic_id, emerging))
     conn.commit()
     return spikes
