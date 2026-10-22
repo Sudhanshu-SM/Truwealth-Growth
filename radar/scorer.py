@@ -76,15 +76,21 @@ def stage_of(heat: float, prev1: float, prev2: float, ep: Episode, now: datetime
     return "Peaking"
 
 
+def is_hot(score: TopicScore, settings: dict) -> bool:
+    """Would the topic qualify for a HOT alert, cooldown and daily cap aside? Heat at the hot threshold and not
+    falling, two sources or a bonus of 3, and Emerging or Peaking (spec section 10, HOT alert rule)."""
+    if score.heat < settings["scoring"]["hot_threshold"] or score.heat < score.prev_heat:
+        return False
+    if score.n_sources < 2 and max(score.bonuses.values(), default=0.0) < 3:
+        return False
+    return score.stage in ("Emerging", "Peaking")
+
+
 def alert_kind(score: TopicScore, last_alert: tuple[datetime, float] | None, sent_today: int, now: datetime,
                settings: dict) -> str | None:
     """'hot', 'capped' or None for one topic (spec section 10, HOT alert rule)."""
-    sc, al = settings["scoring"], settings["alerts"]
-    if score.heat < sc["hot_threshold"] or score.heat < score.prev_heat:
-        return None
-    if score.n_sources < 2 and max(score.bonuses.values(), default=0.0) < 3:
-        return None
-    if score.stage not in ("Emerging", "Peaking"):
+    al = settings["alerts"]
+    if not is_hot(score, settings):
         return None
     if last_alert is not None:
         at, heat_then = last_alert

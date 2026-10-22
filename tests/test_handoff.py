@@ -388,9 +388,11 @@ def supabase_only(monkeypatch):
 def test_feed_sends_every_genre_hot_above_the_hot_threshold(tmp_path):
     st, push = Store(tmp_path / "r.db"), FakePush()
     hot = CFG.settings["scoring"]["hot_threshold"]
-    scores = [TopicScore("gold_price", 5.0, "Emerging", 2), TopicScore(CRICKET[0], hot, "Peaking", 3)]
-    assert push_feed(st, scores, push=push) == 2
-    assert push.calls == [(CRICKET[0], "hot"), ("gold_price", "rising")]  # hottest first; hot from the threshold up
+    scores = [TopicScore("gold_price", 5.0, "Emerging", 2),
+              TopicScore(CRICKET[0], hot, "Emerging", 2),  # at the threshold with two sources: a HOT alert's score
+              TopicScore(FOOD[0], hot + 2, "Peaking", 1)]  # hotter, but one source and no bonus: not an alert's score
+    assert push_feed(st, scores, push=push) == 3
+    assert push.calls == [(FOOD[0], "rising"), (CRICKET[0], "hot"), ("gold_price", "rising")]  # hottest first
     stamp = "2026-09-26T08:00:00+00:00"
     assert st.get_kv(f"feed_sent:{CRICKET[0]}") == st.get_kv("feed_sent:gold_price") == stamp
     # the daily cap counts a topic's first genre only; every one of its genres counts as fed
@@ -497,6 +499,17 @@ def test_quiet_genre_gets_its_biggest_recent_story_as_latest(tmp_path):
     assert push.calls == [(big, "latest"), (small, "latest")]
     assert push.briefs[1].score == TopicScore(small, 0.0, "Quiet", 0)  # no score this run
     assert st.get_kv("feed_last:cricket") == "2026-09-26T20:00:00+00:00"
+
+
+def test_latest_carries_the_headline_and_url_of_a_story_hours_old(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    add_news(st, CRICKET[0], 1, hours_ago=10)  # older than the 6 h a rising topic's brief looks back
+    assert push_quiet(st, push=push) == 1
+    assert push.calls == [(CRICKET[0], "latest")]
+    brief = push.briefs[0]
+    url = f"https://n.test/{CRICKET[0]}/0"
+    assert (brief.headline, brief.headline_url) == (f"{CRICKET[0]} story 0", url)
+    assert brief.evidence == [("News: 1 article in the last 24 hours", url)]
 
 
 def test_quiet_skips_genres_without_news_and_never_opens_the_sheet(tmp_path, monkeypatch):

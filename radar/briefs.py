@@ -46,10 +46,16 @@ def _items(conn: sqlite3.Connection, topic_id: str, source_type: str, where: str
 
 
 def build_brief(conn: sqlite3.Connection, cfg: Config, topic: Topic, score: TopicScore, now: datetime,
-                multipliers: dict[str, float], spiking_phrases: list[str]) -> Brief:
+                multipliers: dict[str, float], spiking_phrases: list[str], *,
+                lookback_hours: float | None = None) -> Brief:
+    """The brief for one topic. News, market and regulator items count from the bonus window back
+    (`scoring.bonus_window_hours`), or from `lookback_hours` back when given, and the News evidence line then counts
+    over that whole span: the story of a quiet genre's `latest` card can be hours old and still has to supply the
+    headline, the link and the evidence."""
     s = cfg.settings
     run_at = to_iso(now)
-    window = (to_iso(now - timedelta(hours=s["scoring"]["bonus_window_hours"])),)
+    hours = s["scoring"]["bonus_window_hours"] if lookback_hours is None else lookback_hours
+    window = (to_iso(now - timedelta(hours=hours)),)
     news = _items(conn, topic.id, "news", "COALESCE(i.published_at, i.first_seen_at) >= ? "
                   "ORDER BY COALESCE(i.published_at, i.first_seen_at) DESC", window)
     trends = _items(conn, topic.id, "search_trend", "i.last_seen_at = ? "
@@ -71,12 +77,15 @@ def build_brief(conn: sqlite3.Connection, cfg: Config, topic: Topic, score: Topi
         traffic = json.loads(t["metrics_json"]).get("approx_traffic", 0)
         since = f", trending since {ist(from_iso(t['published_at'])).strftime('%H:%M')} IST" if t["published_at"] else ""
         evidence.append((f"Google Trends India: '{t['title']}' {format_traffic(traffic)} searches{since}", t["url"]))
-    hour_ago = to_iso(now - timedelta(minutes=60))
-    recent = [n for n in news if (n["published_at"] or n["first_seen_at"]) >= hour_ago]
+    if lookback_hours is None:
+        hour_ago = to_iso(now - timedelta(minutes=60))
+        recent = [n for n in news if (n["published_at"] or n["first_seen_at"]) >= hour_ago]
+        span = f"the last hour (normally about {score.mu.get('news', 0):.0f})"
+    else:  # a `latest` card counts the story's news over the whole lookback; the hourly baseline does not apply
+        recent, span = news, f"the last {lookback_hours:g} hours"
     if recent:
         noun = "article" if len(recent) == 1 else "articles"
-        evidence.append((f"News: {len(recent)} {noun} in the last hour (normally about {score.mu.get('news', 0):.0f})",
-                         recent[0]["url"]))
+        evidence.append((f"News: {len(recent)} {noun} in {span}", recent[0]["url"]))
     if xs:
         rank = int(json.loads(xs[0]["metrics_json"]).get("rank", 0))
         evidence.append((f"X India trending: {xs[0]['title']}, rank {rank}", xs[0]["url"]))

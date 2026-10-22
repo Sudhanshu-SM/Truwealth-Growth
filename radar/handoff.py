@@ -17,7 +17,7 @@ import logging
 from datetime import datetime, timedelta, timezone
 from typing import TYPE_CHECKING, Any, Callable, Iterator, Mapping, Sequence
 
-from radar import briefs
+from radar import briefs, scorer
 from radar.http import Http
 from radar.models import Brief, Topic, TopicScore
 from radar.timeutil import from_iso, ist, ist_date, to_iso
@@ -33,6 +33,7 @@ RADAR_TAB = "Radar topics"
 RADAR_COLUMNS = ("id", "found_at", "topic_id", "topic", "bucket", "stage", "heat", "kind", "headline",
                  "headline_url", "evidence", "angles", "market_move")
 RISING_STAGES = ("Emerging", "Peaking")
+LATEST_HOURS = 24  # how far back a quiet genre's story is counted, and its brief looks
 
 
 def radar_row(brief: Brief, kind: str, now: datetime) -> dict[str, str]:
@@ -169,11 +170,12 @@ def push_feed(store: Store, cfg: Config, scores: Sequence[TopicScore], decided_i
               push: Callable[..., bool] = push_supabase) -> int:
     """Hand off rising topics of every genre to Supabase, hottest first. Returns how many were written.
 
-    A topic qualifies as for `push_rising`, and goes as kind `hot` from the hot threshold up, else `rising`. It is
-    skipped when it had an alert, or was fed, within `feed_repeat_hours`. At most `feed_daily_cap_per_genre` go per
-    IST day for each first genre, so one busy genre cannot crowd out the rest. A topic without genres is not sent: it
-    cannot be placed. The store keys are written only after a successful push."""
-    limits, hot = cfg.settings["handoff"], cfg.settings["scoring"]["hot_threshold"]
+    A topic qualifies as for `push_rising`. It goes as kind `hot` when its score would qualify for a HOT alert apart
+    from cooldown and the daily cap (`scorer.is_hot`: the engine drafts `hot` rows at once, so a single-source spike
+    must not be one), else `rising`. It is skipped when it had an alert, or was fed, within `feed_repeat_hours`. At
+    most `feed_daily_cap_per_genre` go per IST day for each first genre, so one busy genre cannot crowd out the rest.
+    A topic without genres is not sent: it cannot be placed. The store keys are written only after a successful push."""
+    limits = cfg.settings["handoff"]
     repeat = timedelta(hours=limits["feed_repeat_hours"])
     pushed = 0
     for score, topic in _rising(cfg, scores, decided_ids, catalog):
@@ -183,7 +185,7 @@ def push_feed(store: Store, cfg: Config, scores: Sequence[TopicScore], decided_i
             continue  # its genre has had its share for today
         topic_phrases = sorted(sp.phrase for sp in spikes if sp.topic_id == topic.id)
         brief = briefs.build_brief(store.conn, cfg, topic, score, now, multipliers, topic_phrases)
-        if push(brief, "hot" if score.heat >= hot else "rising", now, env):
+        if push(brief, "hot" if scorer.is_hot(score, cfg.settings) else "rising", now, env):
             _record_feed(store, topic, now)
             pushed += 1
     return pushed
@@ -195,14 +197,15 @@ def push_quiet(store: Store, cfg: Config, scores: Sequence[TopicScore], catalog:
     """Give each quiet genre its biggest recent story, as kind `latest`. Returns how many were written.
 
     A genre is quiet when nothing was fed for it in the last `quiet_genre_hours`. Its story is the topic with the most
-    news items published in the last 24 hours (at least one) that was not fed or alerted within `feed_repeat_hours`.
-    A topic in several genres is one push that feeds all of them. Supabase only, never the Sheet."""
+    news items published in the last 24 hours (at least one) that was not fed or alerted within `feed_repeat_hours`;
+    the brief looks as far back, so the card carries that story's headline and link however old it is. A topic in
+    several genres is one push that feeds all of them. Supabase only, never the Sheet."""
     limits = cfg.settings["handoff"]
     quiet, repeat = timedelta(hours=limits["quiet_genre_hours"]), timedelta(hours=limits["feed_repeat_hours"])
     rows = store.conn.execute(
         "SELECT it.topic_id FROM items i JOIN item_topics it ON it.item_id = i.id "
         "WHERE i.source_type = 'news' AND COALESCE(i.published_at, i.first_seen_at) >= ? "
-        "GROUP BY it.topic_id ORDER BY COUNT(*) DESC, it.topic_id", (to_iso(now - timedelta(hours=24)),))
+        "GROUP BY it.topic_id ORDER BY COUNT(*) DESC, it.topic_id", (to_iso(now - timedelta(hours=LATEST_HOURS)),))
     by_news = [row["topic_id"] for row in rows if row["topic_id"] in catalog]  # most news items first
     score_of = {score.topic_id: score for score in scores}
     pushed = 0
@@ -215,7 +218,7 @@ def push_quiet(store: Store, cfg: Config, scores: Sequence[TopicScore], catalog:
         if topic is None:
             continue
         score = score_of.get(topic.id) or TopicScore(topic.id, 0.0, "Quiet", 0)
-        brief = briefs.build_brief(store.conn, cfg, topic, score, now, multipliers, [])
+        brief = briefs.build_brief(store.conn, cfg, topic, score, now, multipliers, [], lookback_hours=LATEST_HOURS)
         if push(brief, "latest", now, env):
             _record_feed(store, topic, now)
             pushed += 1
