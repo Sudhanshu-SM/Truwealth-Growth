@@ -65,6 +65,18 @@ class FakePush:
         return self.ok
 
 
+class Lane(FakePush):
+    """A FakePush that also writes (lane, topic id, kind) to a log shared by the lanes of one run, to show their order."""
+
+    def __init__(self, lane, log):
+        super().__init__()
+        self.lane, self.log = lane, log
+
+    def __call__(self, brief, kind, now, env):
+        self.log.append((self.lane, brief.topic.id, kind))
+        return super().__call__(brief, kind, now, env)
+
+
 def push_rising(st, scores, now=NOW, decided=(), push=None):
     return handoff.push_rising(st, CFG, scores, set(decided), CFG.topic_map, now, {}, {}, [], push=push)
 
@@ -86,9 +98,31 @@ def add_news(st, topic_id, n, hours_ago=1.0, source_type="news", dated=True):
         st.add_item_topics(item_id, [topic_id])
 
 
-def run_radar(st, push, out, now=NOW):
-    return pipeline.run(CFG, st, None, now, dry_run=True, out_dir=out, env={}, collectors=fake_collectors(),
-                        push=push)
+def run_radar(st, push, out, now=NOW, *, sheet=None, feed=None, collectors=None):
+    """One run. `sheet` defaults to `push`, so one recorder sees the alerts and the rising topics in order; `feed` (the
+    Supabase hand-off of every genre) defaults to a recorder of its own."""
+    return pipeline.run(CFG, st, None, now, dry_run=True, out_dir=out, env={},
+                        collectors=fake_collectors() if collectors is None else collectors,
+                        push=push, sheet=push if sheet is None else sheet, feed=FakePush() if feed is None else feed)
+
+
+def genre_collectors():
+    """The finance fakes plus a cricket spike (14 headlines from 14 outlets and a Google trend, so a HOT alert's score)
+    and one food story (too small to spike, so the quiet floor's)."""
+    cricket, food = CFG.topic_map[CRICKET[0]].keywords[0], CFG.topic_map[FOOD[0]].keywords[0]
+
+    def other_genres(ctx):
+        news = [Signal(source="google_news", source_type="news", feed=f"gn:outlet{i}",
+                       title=f"{cricket} franchise talks, day {i}", url=f"https://c.test/{i}",
+                       published_at=ctx.now - timedelta(minutes=5), genres=("cricket",)) for i in range(14)]
+        trend = Signal(source="google_trends", source_type="search_trend", feed="google_trends_in",
+                       title=f"{cricket} auction", url="https://g.test/ipl", published_at=ctx.now - timedelta(minutes=30),
+                       metrics={"approx_traffic": 50000.0})
+        story = Signal(source="google_news", source_type="news", feed="gn:slurrp", title=f"{food} chain opens",
+                       url="https://f.test/1", published_at=ctx.now - timedelta(minutes=20), genres=("food",))
+        return [*news, trend, story]
+
+    return {**fake_collectors(), "other_genres": other_genres}
 
 
 # --- C1: rows for the Radar topics tab ---------------------------------------------------------------------------
@@ -573,9 +607,82 @@ def test_radar_run_hands_off_hot_decisions_then_rising_topics(tmp_path):
 
 
 def test_no_rising_topics_during_warm_up(tmp_path):
-    push, st = FakePush(), Store(tmp_path / "r.db")
-    run_radar(st, push, tmp_path / "out")
+    push, feed, st = FakePush(), FakePush(), Store(tmp_path / "r.db")
+    run_radar(st, push, tmp_path / "out", feed=feed, collectors=genre_collectors())
     heat = {r["topic_id"]: (r["heat"], r["stage"]) for r in st.conn.execute("SELECT * FROM topic_heat")}
     assert heat["market_moves"] == (6.0, "Emerging")  # would qualify after warm-up
-    assert push.calls == []
+    assert heat[CRICKET[0]] == (9.0, "Emerging")  # the cricket topic would qualify too, and the food story be a latest
+    assert push.calls == [] and feed.calls == []  # not the Sheet's steps, nor Supabase's rising and quiet-genre steps
     assert st.get_kv("handoff_rising_count:2026-09-26") is None
+    assert st.conn.execute("SELECT key FROM kv WHERE key LIKE 'feed_%'").fetchall() == []
+
+
+def test_hot_alerts_consider_finance_topics_only(tmp_path):
+    push, sheet, feed = FakePush(), FakePush(), FakePush()
+    st = past_warmup(Store(tmp_path / "r.db"))
+    run_radar(st, push, tmp_path / "out", sheet=sheet, feed=feed, collectors=genre_collectors())
+    cricket = CRICKET[0]
+    heat = st.conn.execute("SELECT heat FROM topic_heat WHERE topic_id = ?", (cricket,)).fetchone()[0]
+    assert heat > CFG.settings["scoring"]["hot_threshold"]  # with two sources: the score of a HOT alert
+    # but it is a cricket topic: no alert row, no email, and none of it goes to an alert's push or to the Sheet
+    assert [r["topic_id"] for r in st.conn.execute("SELECT topic_id FROM alerts")] == ["gold_price"]
+    assert [p.name for p in (tmp_path / "out").iterdir()] == ["20260926T080000Z-hot-gold-price.html"]
+    assert (cricket, "hot") in feed.calls  # Supabase gets it as hot, which needs no email
+    for recorder in (push, sheet):  # the end-to-end guarantee: Tejas's live engine drafts whatever lands in the Sheet
+        assert recorder.briefs and all(CFG.is_finance(brief.topic) for brief in recorder.briefs)
+
+
+def test_run_hands_off_alerts_then_sheet_then_feed_then_quiet(tmp_path):
+    log = []
+    st = past_warmup(Store(tmp_path / "r.db"))
+    run_radar(st, Lane("alert", log), tmp_path / "out", sheet=Lane("sheet", log), feed=Lane("feed", log),
+              collectors=genre_collectors())
+
+    def calls(lane):
+        return [(topic, kind) for name, topic, kind in log if name == lane]
+
+    steps = [("quiet" if kind == "latest" else lane) for lane, _, kind in log]
+    rank = {"alert": 0, "sheet": 1, "feed": 2, "quiet": 3}
+    assert set(steps) == set(rank) and steps == sorted(steps, key=rank.get)
+    assert calls("alert") == [("gold_price", "hot")]  # `push` takes the HOT decisions only
+    assert sorted(calls("sheet")) == [("market_moves", "rising"), ("rupee_forex", "rising")]  # finance, rising only
+    assert (CRICKET[0], "hot") in calls("feed") and (FOOD[0], "latest") in calls("feed")  # every genre, and the floor
+    # gold_price had the alert, and it was recorded before the feed steps ran: it is neither fed as rising nor the
+    # latest story of its quiet genre (personal_finance, where it is the only topic with news)
+    assert "gold_price" not in [topic for topic, _ in calls("feed")]
+
+
+def test_a_hot_decision_whose_email_failed_is_not_also_handed_off_as_rising(tmp_path):
+    push, sheet, feed = FakePush(), FakePush(), FakePush()
+    st = past_warmup(Store(tmp_path / "r.db"))
+    # a real send without SMTP settings fails: the alert stays unrecorded, so the next run tries it again
+    code = pipeline.run(CFG, st, None, NOW, dry_run=False, out_dir=tmp_path / "out", env={},
+                        collectors=fake_collectors(), push=push, sheet=sheet, feed=feed)
+    assert code == 1 and push.calls == []
+    assert st.conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 0
+    # the decision was made this run, so neither the Sheet's rising step nor the feed's takes the topic as well (it can
+    # still be a quiet genre's latest story, which is Supabase only)
+    assert sheet.calls and "gold_price" not in [topic for topic, _ in sheet.calls]
+    assert ("gold_price", "hot") not in feed.calls and ("gold_price", "rising") not in feed.calls
+
+
+def test_default_destinations_keep_the_sheet_finance_only(tmp_path, monkeypatch):
+    ws = FakeWorksheet(SHEET_HEADER)
+    client = types.SimpleNamespace(open_by_key=lambda sheet_id: types.SimpleNamespace(worksheet=lambda title: ws))
+    monkeypatch.setitem(sys.modules, "gspread", types.SimpleNamespace(
+        service_account_from_dict=lambda info: client, exceptions=types.SimpleNamespace(WorksheetNotFound=KeyError)))
+    http, sent = fake_http()
+    http.close = lambda: None  # one fake serves every push
+    monkeypatch.setattr(handoff, "Http", lambda: http)
+    st = past_warmup(Store(tmp_path / "r.db"))
+    # no push, sheet or feed: the functions `python -m radar run` uses, with both destinations configured
+    pipeline.run(CFG, st, None, NOW, dry_run=True, out_dir=tmp_path / "out", env={**ENV, **SUPA_ENV},
+                 collectors=genre_collectors())
+    on_sheet = [row[SHEET_HEADER.index("topic_id")] for row in ws.rows[1:]]
+    assert sorted(on_sheet) == ["gold_price", "market_moves", "rupee_forex"]
+    assert all(CFG.is_finance(CFG.topic_map[topic]) for topic in on_sheet)
+    rows = [json.loads(request.content)[0] for request in sent]
+    assert {(row["topic_id"], row["kind"]) for row in rows} >= {
+        ("gold_price", "hot"), (CRICKET[0], "hot"), ("market_moves", "rising"), (FOOD[0], "latest")}
+    assert len({row["topic_id"] for row in rows}) == len(rows)  # each topic once
+    assert all(row["genres"] for row in rows)

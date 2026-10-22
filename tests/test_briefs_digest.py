@@ -1,3 +1,4 @@
+import dataclasses
 from datetime import date, datetime, timedelta, timezone
 
 from helpers import NOW
@@ -99,3 +100,33 @@ def test_build_digest_sections(tmp_path):
     assert d.events == [{"date": "07 Oct", "name": "RBI MPC policy decision",
                          "angles": ["Plain-language explainer", "Run the numbers"]}]
     assert d.health == ["reddit: failing, last success never succeeded (HTTPStatusError: 403)"]
+
+
+def test_digest_lists_finance_topics_only(tmp_path):
+    now = datetime(2026, 10, 2, 3, 0, tzinfo=timezone.utc)  # 08:30 IST, 5 days before the RBI decision
+    st = Store(tmp_path / "r.db")
+    run = to_iso(now - timedelta(hours=1))
+    cricket, real_estate = "ipl_franchises", "housing_market_launches"  # neither has a finance genre
+    st.conn.execute("INSERT INTO runs VALUES (?, 7)", (run,))
+    st.conn.execute("INSERT INTO emerging_topics (topic_id, phrase, name, bucket, genres, created_at, last_seen_at) "
+                    "VALUES ('emerging:ipl-trade', 'ipl trade', 'IPL trade', 'cricket', 'cricket', ?, ?)", (run, run))
+    st.conn.executemany("INSERT INTO topic_heat VALUES (?, ?, ?, ?, ?)",
+                        [(run, cricket, 15.0, "Peaking", 3), (run, "emerging:ipl-trade", 14.0, "Emerging", 2),
+                         (run, real_estate, 13.0, "Peaking", 3), (run, "gold_price", 12.0, "Peaking", 3),
+                         (run, "home_buying", 5.0, "Emerging", 1),  # personal_finance and real_estate: a finance topic
+                         (run, "rbi_policy", 4.5, "Emerging", 1)])
+    st.conn.execute("INSERT INTO alerts (topic_id, kind, sent_at, heat, subject) "
+                    "VALUES ('gold_price', 'hot', ?, 12, 's')", (run,))
+    st.conn.commit()
+    d = build_digest(st.conn, CFG, now)
+    assert [t["name"] for t in d.top] == ["Gold & silver prices", "Home buying", "RBI policy & rates"]
+    assert [n["name"] for n in d.near_misses] == ["Home buying", "RBI policy & rates"]
+    # the digest's slots go to finance topics: with room for one, hotter topics of other genres do not use it up
+    one = {**CFG.settings, "digest": {**CFG.settings["digest"], "top_n": 1, "near_miss_n": 1}}
+    tight = build_digest(st.conn, dataclasses.replace(CFG, settings=one), now)
+    assert [t["name"] for t in tight.top] == ["Gold & silver prices"]
+    assert [n["name"] for n in tight.near_misses] == ["Home buying"]
+    # and so does "Coming up": an event of another genre stays out
+    auction = {"date": date(2026, 10, 5), "name": "IPL mega auction", "topic": cricket}
+    events = build_digest(st.conn, dataclasses.replace(CFG, events=(*CFG.events, auction)), now).events
+    assert [e["name"] for e in events] == ["RBI MPC policy decision"]

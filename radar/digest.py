@@ -44,6 +44,9 @@ def build_digest(conn: sqlite3.Connection, cfg: Config, now: datetime) -> Digest
     catalog = topic_catalog(conn, cfg, now)
     peaks = conn.execute("SELECT topic_id, MAX(heat) AS peak FROM topic_heat WHERE run_at >= ? "
                          "GROUP BY topic_id ORDER BY peak DESC, topic_id", (since,)).fetchall()
+    # The digest is finance-only, like the Sheet and the HOT emails. Filtering before the top_n and near_miss_n cuts
+    # keeps their slots for finance topics, and a topic no longer in the catalog (no genres known) stays out.
+    peaks = [r for r in peaks if cfg.is_finance(catalog.get(r["topic_id"]))]
     last_run = conn.execute("SELECT MAX(run_at) FROM runs").fetchone()[0]
     current = {r["topic_id"]: r["stage"]
                for r in conn.execute("SELECT topic_id, stage FROM topic_heat WHERE run_at = ?", (last_run,))}
@@ -69,8 +72,11 @@ def build_digest(conn: sqlite3.Connection, cfg: Config, now: datetime) -> Digest
     data.near_misses = data.near_misses[: d["near_miss_n"]]
     data.scoreboard = hooks.scoreboard(conn, now)[: d["scoreboard_n"]]
     for e in events_mod.upcoming(cfg.events, ist_date(now), d["events_days"]):
+        topic = cfg.topic_map[e["topic"]]
+        if not cfg.is_finance(topic):
+            continue
         label = e["date"].strftime("%d %b") + (f" to {e['date_end'].strftime('%d %b')}" if e.get("date_end") else "")
-        ideas = [cfg.angles[a].name for a in cfg.topic_map[e["topic"]].angles[:2]]
+        ideas = [cfg.angles[a].name for a in topic.angles[:2]]
         data.events.append({"date": label, "name": e["name"], "angles": ideas})
     stale = now - timedelta(hours=d["health_stale_hours"])
     for r in conn.execute("SELECT * FROM source_health ORDER BY source"):

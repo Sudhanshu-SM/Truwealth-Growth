@@ -61,10 +61,14 @@ def fresh(signals: list[Signal], now: datetime, max_age_hours: float) -> list[Si
 
 def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, out_dir: Path,
         env: Mapping[str, str], collectors: Mapping[str, Collector] | None = None,
-        push: Callable[..., bool] = handoff.push_decision) -> int:
+        push: Callable[..., bool] = handoff.push_decision, sheet: Callable[..., bool] = handoff.push_sheet,
+        feed: Callable[..., bool] = handoff.push_supabase) -> int:
     """One radar cycle. Returns the process exit code.
 
-    `push` hands each HOT, capped and rising topic to the ghostwriter (its Radar topics tab and/or Supabase)."""
+    Each hand-off to the ghostwriter has its own push function: `push` takes a HOT or capped alert (the Sheet and
+    Supabase), `sheet` a rising finance topic (the Sheet only), `feed` the rising topics and the quiet genres' latest
+    stories of every genre (Supabase only). Alerts and their emails consider finance topics only: the ghostwriter's
+    live engine drafts, and in autopilot posts, whatever reaches its Sheet."""
     s = cfg.settings
     run_index = int(store.get_kv("run_index") or 0)
     selected = select_collectors(COLLECTORS if collectors is None else collectors, store, now, s)
@@ -100,7 +104,8 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
         log.info("warm-up: collecting history, HOT alerts start %d h after the first run", s["alerts"]["warmup_hours"])
         decisions = []
     else:
-        decisions = scorer.decide_alerts(store.conn, scores, now, s)
+        finance = [sc for sc in scores if cfg.is_finance(catalog[sc.topic_id])]
+        decisions = scorer.decide_alerts(store.conn, finance, now, s)
     multipliers = hooks.angle_multipliers(store.conn, now)
     email_failed = False
     for score, kind in decisions:
@@ -123,14 +128,20 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
             continue
         scorer.record_alert(store.conn, topic.id, "hot", now, score.heat, subject)
         push(brief, "hot", now, env)
-    rising = 0 if warm else handoff.push_rising(
-        store, cfg, scores, {sc.topic_id for sc, _ in decisions}, catalog, now, env, multipliers, spikes, push=push)
+    # After the decisions loop, which has recorded the alerts that keep a topic out of the three steps below.
+    decided = {sc.topic_id for sc, _ in decisions}
+    rising = fed = latest = 0
+    if not warm:
+        rising = handoff.push_rising(store, cfg, scores, decided, catalog, now, env, multipliers, spikes, push=sheet)
+        fed = handoff.push_feed(store, cfg, scores, decided, catalog, now, env, multipliers, spikes, push=feed)
+        latest = handoff.push_quiet(store, cfg, scores, catalog, now, env, multipliers, push=feed)
 
     phrases.prune_singletons(store.conn, now)
     store.prune(now, s["retention"])
     store.set_kv("run_index", str(run_index + 1))
-    log.info("run done: %d signals, %d new items, %d spikes, %d scored topics, %d alert decisions, %d rising sent",
-             len(signals), len(new_items), len(spikes), len(scores), len(decisions), rising)
+    log.info("run done: %d signals, %d new items, %d spikes, %d scored topics, %d alert decisions, %d rising sent, "
+             "%d fed, %d latest", len(signals), len(new_items), len(spikes), len(scores), len(decisions), rising, fed,
+             latest)
     return 1 if all_failed or email_failed else 0
 
 
