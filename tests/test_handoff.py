@@ -1,3 +1,5 @@
+import copy
+import dataclasses
 import json
 import sys
 import types
@@ -9,7 +11,7 @@ from test_pipeline import CFG, fake_collectors, past_warmup
 
 from radar import handoff, pipeline, scorer
 from radar.http import Http
-from radar.models import Brief, Topic, TopicScore
+from radar.models import Brief, Signal, Topic, TopicScore
 from radar.store import Store
 from radar.timeutil import ist
 
@@ -18,9 +20,17 @@ SHEET_HEADER = (*handoff.RADAR_COLUMNS, "status", "queue_id", "post_on", "image"
 TOPIC_IDS = [t.id for t in CFG.topics]
 
 
-def make_brief(evidence=None):
+def lead(genre):
+    """The static topics whose first genre is `genre` (every genre has its own lead topics), in topics.yaml order."""
+    return [t.id for t in CFG.topics if t.genres[0] == genre]
+
+
+CRICKET, FOOD = lead("cricket"), lead("food")
+
+
+def make_brief(evidence=None, genres=("economy", "personal_finance")):
     topic = Topic(id="gold_price", name="Gold & silver prices", bucket="markets", keywords=("gold",),
-                  angles=("myth_bust",))
+                  angles=("myth_bust",), genres=genres)
     score = TopicScore(topic_id="gold_price", heat=12.0, stage="Emerging", n_sources=3)
     if evidence is None:
         evidence = [("News: 14 articles in the last hour (normally about 2)", "https://n.test/1"),
@@ -44,18 +54,36 @@ class FakeWorksheet:
 
 
 class FakePush:
-    """Stands in for push_decision: records (topic id, kind) and returns `ok`."""
+    """Stands in for a push function: records (topic id, kind), and the briefs, and returns `ok`."""
 
     def __init__(self, ok=True):
-        self.ok, self.calls = ok, []
+        self.ok, self.calls, self.briefs = ok, [], []
 
     def __call__(self, brief, kind, now, env):
         self.calls.append((brief.topic.id, kind))
+        self.briefs.append(brief)
         return self.ok
 
 
 def push_rising(st, scores, now=NOW, decided=(), push=None):
     return handoff.push_rising(st, CFG, scores, set(decided), CFG.topic_map, now, {}, {}, [], push=push)
+
+
+def push_feed(st, scores, now=NOW, decided=(), push=None, cfg=CFG):
+    return handoff.push_feed(st, cfg, scores, set(decided), cfg.topic_map, now, {}, {}, [], push=push)
+
+
+def push_quiet(st, scores=(), now=NOW, push=None):
+    return handoff.push_quiet(st, CFG, scores, CFG.topic_map, now, {}, {}, push=push)
+
+
+def add_news(st, topic_id, n, hours_ago=1.0, source_type="news", dated=True):
+    """n items about the topic, published (or just first seen, when undated) `hours_ago` before NOW."""
+    when = NOW - timedelta(hours=hours_ago)
+    signals = [Signal(source="news_feeds", source_type=source_type, feed="f", title=f"{topic_id} story {i}",
+                      url=f"https://n.test/{topic_id}/{i}", published_at=when if dated else None) for i in range(n)]
+    for item_id, _ in st.add_items(signals, when):
+        st.add_item_topics(item_id, [topic_id])
 
 
 def run_radar(st, push, out, now=NOW):
@@ -194,11 +222,20 @@ def test_supabase_insert_request():
     assert req.headers["apikey"] == "sb_secret_fake" and "authorization" not in req.headers
     assert req.headers["prefer"] == "resolution=ignore-duplicates,return=minimal"
     (row,) = json.loads(req.content)
-    assert tuple(row) == handoff.RADAR_COLUMNS
+    assert tuple(row) == (*handoff.RADAR_COLUMNS, "genres")
     expected = handoff.radar_row(make_brief(), "hot", NOW)
-    assert row == {**expected, "found_at": "2026-09-26T08:00:00+00:00", "heat": 12.0, "market_move": True}
+    assert row == {**expected, "found_at": "2026-09-26T08:00:00+00:00", "heat": 12.0, "market_move": True,
+                   "genres": ["economy", "personal_finance"]}
     no_market = handoff.supabase_row(make_brief([("News: 3", None)]), "rising", NOW)
     assert no_market["market_move"] is False
+
+
+def test_supabase_row_carries_genres_in_order():
+    assert handoff.supabase_row(make_brief(genres=("economy", "personal_finance")), "hot", NOW)["genres"] == [
+        "economy", "personal_finance"]
+    assert handoff.supabase_row(make_brief(genres=("personal_finance", "economy")), "hot", NOW)["genres"] == [
+        "personal_finance", "economy"]
+    assert "genres" not in handoff.radar_row(make_brief(), "hot", NOW)  # the Sheet's columns are unchanged
 
 
 def test_supabase_needs_both_settings():
@@ -296,6 +333,218 @@ def test_failed_push_records_nothing(tmp_path):
     assert st.get_kv("handoff_rising:gold_price") is None
     assert st.get_kv("handoff_rising_count:2026-09-26") is None
     assert push_rising(st, scores, NOW + timedelta(minutes=15), push=FakePush()) == 1  # retried on the next run
+
+
+# --- the Sheet is finance-only ---------------------------------------------------------------------------------
+
+def test_rising_sends_only_finance_topics_to_the_sheet(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    scores = [TopicScore(CRICKET[0], 9.0, "Peaking", 3), TopicScore("gold_price", 5.0, "Emerging", 2)]
+    assert push_rising(st, scores, push=push) == 1
+    assert push.calls == [("gold_price", "rising")]
+    assert st.get_kv(f"handoff_rising:{CRICKET[0]}") is None
+    assert st.get_kv("handoff_rising_count:2026-09-26") == "1"
+
+
+def test_mixed_genre_topic_still_reaches_the_sheet(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    assert CFG.topic_map["home_buying"].genres == ("personal_finance", "real_estate")
+    assert CFG.topic_map["housing_market_launches"].genres == ("real_estate",)
+    scores = [TopicScore("housing_market_launches", 8.0, "Peaking", 3), TopicScore("home_buying", 5.0, "Emerging", 2)]
+    assert push_rising(st, scores, push=push) == 1
+    assert push.calls == [("home_buying", "rising")]
+
+
+def test_rising_writes_the_sheet_and_not_supabase_by_default(tmp_path, monkeypatch):
+    ws = FakeWorksheet(SHEET_HEADER)
+    client = types.SimpleNamespace(open_by_key=lambda sheet_id: types.SimpleNamespace(worksheet=lambda title: ws))
+    monkeypatch.setitem(sys.modules, "gspread", types.SimpleNamespace(
+        service_account_from_dict=lambda info: client, exceptions=types.SimpleNamespace(WorksheetNotFound=KeyError)))
+    http, sent = fake_http()
+    monkeypatch.setattr(handoff, "Http", lambda: http)
+    scores = [TopicScore("gold_price", 5.0, "Emerging", 2)]
+    assert handoff.push_rising(Store(tmp_path / "r.db"), CFG, scores, set(), CFG.topic_map, NOW,
+                               {**ENV, **SUPA_ENV}, {}, []) == 1
+    assert [row[SHEET_HEADER.index("topic_id")] for row in ws.rows[1:]] == ["gold_price"]
+    assert sent == []
+
+
+# --- Supabase gets every genre ---------------------------------------------------------------------------------
+
+def supabase_only(monkeypatch):
+    """Both destinations configured. The Sheet fails the test if touched; Supabase requests are recorded.
+    Returns (env, requests sent)."""
+    def forbidden(*args, **kwargs):
+        raise AssertionError("this hand-off must stay off the Sheet")
+
+    monkeypatch.setattr(handoff, "open_sheet", forbidden)
+    monkeypatch.setattr(handoff, "push_sheet", forbidden)
+    http, sent = fake_http()
+    http.close = lambda: None  # push_supabase closes a client it opened itself; one fake serves every push here
+    monkeypatch.setattr(handoff, "Http", lambda: http)
+    return {**ENV, **SUPA_ENV}, sent
+
+
+def test_feed_sends_every_genre_hot_above_the_hot_threshold(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    hot = CFG.settings["scoring"]["hot_threshold"]
+    scores = [TopicScore("gold_price", 5.0, "Emerging", 2), TopicScore(CRICKET[0], hot, "Peaking", 3)]
+    assert push_feed(st, scores, push=push) == 2
+    assert push.calls == [(CRICKET[0], "hot"), ("gold_price", "rising")]  # hottest first; hot from the threshold up
+    stamp = "2026-09-26T08:00:00+00:00"
+    assert st.get_kv(f"feed_sent:{CRICKET[0]}") == st.get_kv("feed_sent:gold_price") == stamp
+    # the daily cap counts a topic's first genre only; every one of its genres counts as fed
+    genres = ("cricket", "economy", "personal_finance")
+    assert [st.get_kv(f"feed_count:{g}:2026-09-26") for g in genres] == ["1", "1", None]
+    assert [st.get_kv(f"feed_last:{g}") for g in genres] == [stamp] * 3
+    assert st.get_kv("handoff_rising:gold_price") is None  # the Sheet's own bookkeeping is separate
+
+
+def test_feed_takes_emerging_or_peaking_topics_at_watch(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    watch = CFG.settings["scoring"]["watch_threshold"]
+    a, b, c, d, e = CRICKET[:5]
+    scores = [TopicScore(a, 8.0, "Fading", 2),
+              TopicScore(b, 7.0, "Quiet", 0),
+              TopicScore(c, watch - 0.1, "Emerging", 1),
+              TopicScore(d, watch, "Peaking", 1),
+              TopicScore(e, 5.0, "Emerging", 1)]
+    assert push_feed(st, scores, push=push) == 2
+    assert push.calls == [(e, "rising"), (d, "rising")]
+
+
+def test_feed_caps_each_genre_per_day(tmp_path):
+    cap = 2  # each genre has only a few lead topics, so the test lowers the cap in its own copy of the settings
+    settings = copy.deepcopy(CFG.settings)
+    settings["handoff"]["feed_daily_cap_per_genre"] = cap
+    cfg = dataclasses.replace(CFG, settings=settings)
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    cricket = CRICKET[:cap + 2]
+    assert len(cricket) == cap + 2
+    scores = [TopicScore(t, 9.0 - i, "Peaking", 2) for i, t in enumerate(cricket)]
+    scores.append(TopicScore(FOOD[0], 5.0, "Peaking", 2))
+    assert push_feed(st, scores[::-1], push=push, cfg=cfg) == cap + 1
+    assert push.calls == [(cricket[0], "hot"), (cricket[1], "hot"), (FOOD[0], "rising")]  # the hottest cricket topics
+    assert st.get_kv("feed_count:cricket:2026-09-26") == str(cap)
+    assert st.get_kv("feed_count:food:2026-09-26") == "1"
+    assert push_feed(st, scores, NOW + timedelta(minutes=15), push=push, cfg=cfg) == 0  # cricket is full for today
+    next_day = NOW + timedelta(hours=20)  # 09:30 IST on 27 September; the first ones went 20 h ago
+    assert push_feed(st, scores, next_day, push=push, cfg=cfg) == cap
+    assert [t for t, _ in push.calls[cap + 1:]] == cricket[cap:]
+    assert st.get_kv("feed_count:cricket:2026-09-27") == str(cap)
+
+
+def test_feed_sends_a_topic_once_per_24_hours_and_skips_decided_or_alerted(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    once, alerted, old_alert, decided = CRICKET[:4]
+    scorer.record_alert(st.conn, alerted, "hot", NOW - timedelta(hours=2), 9.0, "subject")
+    scorer.record_alert(st.conn, old_alert, "capped", NOW - timedelta(hours=25), 9.0, "subject")
+    scores = [TopicScore(t, 7.0, "Peaking", 2) for t in (once, alerted, old_alert, decided)]
+    assert push_feed(st, scores, decided={decided}, push=push) == 2
+    assert [t for t, _ in push.calls] == [once, old_alert]  # alerted 2 h ago, and decided in this very run: skipped
+    assert push_feed(st, scores[:1], NOW + timedelta(minutes=15), push=push) == 0
+    assert push_feed(st, scores[:1], NOW + timedelta(hours=23, minutes=59), push=push) == 0
+    assert push_feed(st, scores[:1], NOW + timedelta(hours=24), push=push) == 1
+
+
+def test_feed_and_quiet_never_send_a_topic_without_genres(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    nameless = Topic(id="emerging:nameless", name="Nameless", bucket="markets", keywords=("nameless",),
+                     angles=("faq",), emerging=True)
+    catalog, scores = {nameless.id: nameless}, [TopicScore(nameless.id, 9.0, "Peaking", 3)]
+    add_news(st, nameless.id, 3)
+    assert handoff.push_feed(st, CFG, scores, set(), catalog, NOW, {}, {}, [], push=push) == 0
+    assert handoff.push_quiet(st, CFG, scores, catalog, NOW, {}, {}, push=push) == 0
+    assert push.calls == []
+
+
+def test_failed_feed_and_quiet_pushes_record_nothing(tmp_path):
+    st, failing = Store(tmp_path / "r.db"), FakePush(ok=False)
+    add_news(st, CRICKET[0], 2)
+    scores = [TopicScore(CRICKET[0], 7.0, "Peaking", 2)]
+    assert push_feed(st, scores, push=failing) == 0
+    assert push_quiet(st, scores, push=failing) == 0
+    assert failing.calls == [(CRICKET[0], "hot"), (CRICKET[0], "latest")]
+    assert st.conn.execute("SELECT key FROM kv WHERE key LIKE 'feed_%'").fetchall() == []
+    assert push_quiet(st, scores, NOW + timedelta(minutes=15), push=FakePush()) == 1  # retried on the next run
+
+
+def test_feed_goes_to_supabase_and_never_the_sheet_by_default(tmp_path, monkeypatch):
+    env, sent = supabase_only(monkeypatch)
+    scores = [TopicScore(CRICKET[0], 9.0, "Peaking", 3)]
+    assert handoff.push_feed(Store(tmp_path / "r.db"), CFG, scores, set(), CFG.topic_map, NOW, env, {}, []) == 1
+    (req,) = sent
+    (row,) = json.loads(req.content)
+    assert (row["topic_id"], row["kind"], row["genres"]) == (CRICKET[0], "hot", ["cricket"])
+
+
+# --- the quiet-genre floor ---------------------------------------------------------------------------------------
+
+def test_quiet_genre_gets_its_biggest_recent_story_as_latest(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    big, small = CRICKET[:2]
+    add_news(st, big, 3)
+    add_news(st, small, 1, dated=False)  # no publish date: counted from when it was first seen
+    big_score = TopicScore(big, 5.5, "Peaking", 2)
+    assert push_quiet(st, [big_score], push=push) == 1
+    assert push.calls == [(big, "latest")]
+    assert push.briefs[0].score is big_score  # this run's score for the topic
+    stamp = "2026-09-26T08:00:00+00:00"
+    assert (st.get_kv("feed_last:cricket"), st.get_kv(f"feed_sent:{big}")) == (stamp, stamp)
+    assert st.get_kv("feed_count:cricket:2026-09-26") == "1"
+    assert push_quiet(st, [], NOW + timedelta(hours=11), push=push) == 0  # fed 11 h ago: not quiet yet
+    assert push_quiet(st, [], NOW + timedelta(hours=12), push=push) == 1  # quiet again; `big` was fed within 24 h
+    assert push.calls == [(big, "latest"), (small, "latest")]
+    assert push.briefs[1].score == TopicScore(small, 0.0, "Quiet", 0)  # no score this run
+    assert st.get_kv("feed_last:cricket") == "2026-09-26T20:00:00+00:00"
+
+
+def test_quiet_skips_genres_without_news_and_never_opens_the_sheet(tmp_path, monkeypatch):
+    env, sent = supabase_only(monkeypatch)
+    st = Store(tmp_path / "r.db")
+    add_news(st, CRICKET[0], 2)
+    add_news(st, lead("football")[0], 4, hours_ago=25)  # over a day old
+    add_news(st, lead("movies")[0], 4, source_type="forum")  # not news; every other genre has nothing at all
+    assert handoff.push_quiet(st, CFG, [], CFG.topic_map, NOW, env, {}) == 1
+    (req,) = sent
+    (row,) = json.loads(req.content)
+    assert (row["topic_id"], row["kind"], row["genres"], row["stage"], row["heat"]) == (
+        CRICKET[0], "latest", ["cricket"], "Quiet", 0.0)
+    assert [st.get_kv(f"feed_last:{g}") for g in ("football", "movies")] == [None, None]
+
+
+def test_a_genre_just_fed_by_a_rising_topic_is_not_quiet(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    first, second = CRICKET[:2]
+    add_news(st, first, 3)
+    add_news(st, second, 2)
+    assert push_feed(st, [TopicScore(first, 7.0, "Peaking", 3)], push=push) == 1
+    assert push_quiet(st, [], NOW + timedelta(hours=11), push=push) == 0
+    assert push_quiet(st, [], NOW + timedelta(hours=12), push=push) == 1
+    assert push.calls == [(first, "hot"), (second, "latest")]
+
+
+def test_quiet_topic_with_two_genres_is_one_push_that_feeds_both(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    assert CFG.topic_map["ai_chatbots_tools"].genres == ("ai", "technology")
+    assert CFG.topic_map["ai_risks_regulation"].genres == ("ai",)
+    add_news(st, "ai_chatbots_tools", 2)
+    add_news(st, "ai_risks_regulation", 1)  # technology comes before ai: its push feeds ai, so this one waits
+    assert push_quiet(st, push=push) == 1
+    assert push.calls == [("ai_chatbots_tools", "latest")]
+    stamp = "2026-09-26T08:00:00+00:00"
+    assert [st.get_kv(f"feed_last:{g}") for g in ("ai", "technology")] == [stamp, stamp]
+    assert [st.get_kv(f"feed_count:{g}:2026-09-26") for g in ("ai", "technology")] == ["1", None]
+
+
+def test_quiet_does_not_resend_a_topic_alerted_in_the_last_24_hours(tmp_path):
+    st, push = Store(tmp_path / "r.db"), FakePush()
+    alerted, other = CRICKET[:2]
+    add_news(st, alerted, 3)
+    add_news(st, other, 1)
+    scorer.record_alert(st.conn, alerted, "hot", NOW - timedelta(hours=2), 9.0, "subject")
+    assert push_quiet(st, push=push) == 1
+    assert push.calls == [(other, "latest")]
 
 
 # --- pipeline wiring ---------------------------------------------------------------------------------------------

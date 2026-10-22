@@ -34,9 +34,12 @@ alerts:
   daily_cap: 4
   urgency_hours: {Emerging: 3, Peaking: 1}
 
-handoff:                       # rows for the ghostwriter's Radar topics tab (radar/handoff.py)
-  rising_daily_cap: 10         # rising topics handed off per IST day
-  rising_repeat_hours: 24      # the same topic goes as rising at most this often
+handoff:                       # what the radar hands to the ghostwriter (radar/handoff.py)
+  rising_daily_cap: 10         # Sheet (finance only): rising topics handed off per IST day
+  rising_repeat_hours: 24      # Sheet: the same topic goes as rising at most this often
+  feed_daily_cap_per_genre: 6  # Supabase (every genre): topics handed off per IST day for each first genre
+  feed_repeat_hours: 24        # Supabase: the same topic goes at most this often
+  quiet_genre_hours: 12        # Supabase: a genre with nothing handed off for this long gets its biggest recent story
 
 phrases:
   min_ratio: 4.0
