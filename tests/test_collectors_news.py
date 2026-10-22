@@ -48,11 +48,13 @@ def test_google_news_collect_runs_every_query_for_the_last_hour():
         seen.append(request.url)
         return httpx.Response(200, content=fixture_bytes("google_news.xml"))
 
-    sigs = google_news.collect(make_ctx(handler))
-    assert len(seen) == 11
+    ctx = make_ctx(handler)
+    sigs = google_news.collect(ctx)
+    queries = ctx.config.sources["google_news"]["queries"]
+    assert len(seen) == len(queries)
     assert all(u.params["q"].endswith(" when:1h") for u in seen)
     assert len([u for u in seen if u.params["hl"] == "hi"]) == 2
-    assert len(sigs) == 22
+    assert len(sigs) == 2 * len(queries)
 
 
 def test_news_feeds_parse():

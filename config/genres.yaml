@@ -1,0 +1,41 @@
+# The genre list: the contract between the radar, Supabase, Studio and the ghostwriter engine.
+# Ids are stable and their order is the order people see; names are what they read. Changing either needs the
+# same change in Studio, the engine and the radar_topics migration.
+# A topic with at least one finance genre is a finance topic: only those reach the Google Sheet, the HOT emails
+# and the daily digest.
+
+genres:
+  # Money & work
+  - {id: personal_finance, name: "Personal finance", finance: true}
+  - {id: stock_market, name: "Stock market & trading", finance: true}
+  - {id: economy, name: "Economy & policy", finance: true}
+  - {id: wealth, name: "Wealth & investing", finance: true}
+  - {id: crypto, name: "Crypto", finance: true}
+  - {id: real_estate, name: "Real estate"}
+  - {id: business, name: "Startups & business"}
+  - {id: careers, name: "Careers & jobs"}
+  - {id: marketing, name: "Marketing & creators"}
+  # Tech & science
+  - {id: technology, name: "Tech & gadgets"}
+  - {id: ai, name: "AI"}
+  - {id: science, name: "Science & space"}
+  # Sports
+  - {id: cricket, name: "Cricket"}
+  - {id: football, name: "Football"}
+  - {id: sports, name: "Other sports"}
+  # Entertainment
+  - {id: movies, name: "Movies & Bollywood"}
+  - {id: ott_tv, name: "OTT & TV"}
+  - {id: music, name: "Music"}
+  - {id: gaming, name: "Gaming"}
+  # Lifestyle
+  - {id: health, name: "Health & fitness"}
+  - {id: food, name: "Food"}
+  - {id: travel, name: "Travel"}
+  - {id: fashion, name: "Fashion & beauty"}
+  - {id: auto, name: "Cars & bikes"}
+  - {id: spirituality, name: "Spirituality & astrology"}
+  # Society
+  - {id: politics, name: "Politics & current affairs"}
+  - {id: education, name: "Education & exams"}
+  - {id: environment, name: "Environment & weather"}

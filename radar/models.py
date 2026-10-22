@@ -32,6 +32,7 @@ class Topic:
     keywords: tuple[str, ...]
     angles: tuple[str, ...]
     emerging: bool = False
+    genres: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

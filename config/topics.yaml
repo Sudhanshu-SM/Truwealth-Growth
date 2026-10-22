@@ -1,79 +1,98 @@
-# Finance topics the radar scores. Matching rules (spec section 8):
+# The topics the radar scores: the finance topics first, then a few for every other genre. Matching rules (spec
+# section 8):
 # - keywords match whole words, case-insensitively;
 # - ALL-CAPS keywords of 4 characters or fewer (SIP, UPI, F&O) match case-sensitively;
 # - Devanagari keywords match as substrings.
 # angles must be ids from angles.yaml, in order of preference.
+# genres are ids from genres.yaml, most relevant first. A topic with a finance genre is a finance topic: it names one
+# of the four finance buckets, and only finance topics reach the Sheet, the HOT emails and the digest. Every other
+# topic has no bucket (its bucket is its first genre), no finance genre, and lists its own genre first, because the
+# per-genre daily cap counts a topic's first genre.
 
 topics:
   # Personal finance
   - id: sip_mutual_funds
     name: "Mutual funds & SIPs"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["mutual fund", "mutual funds", "SIP", "SIPs", "systematic investment plan", "NFO", "index fund", "index funds", "ELSS", "AMFI", "NAV", "flexi cap fund", "small cap fund", "mid cap fund", "large cap fund", "म्यूचुअल फंड", "एसआईपी"]
     angles: [myth_bust, mistakes_list, data_compare, what_if_calculator, should_you, explainer, checklist, contrarian_take]
   - id: income_tax
     name: "Income tax & regimes"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["income tax", "tax regime", "new regime", "old regime", "tax slab", "tax slabs", "80C", "80D", "standard deduction", "87A", "tax rebate", "TDS", "tax saving", "tax-saving", "advance tax", "आयकर", "इनकम टैक्स"]
     angles: [before_after_rule, what_if_calculator, explainer, mistakes_list, checklist, faq, myth_bust]
   - id: itr_filing
     name: "ITR filing & refunds"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["ITR", "ITRs", "income tax return", "tax return", "tax refund", "income tax refund", "AIS", "Form 16", "Form 26AS", "e-filing", "belated return", "आईटीआर"]
     angles: [checklist, mistakes_list, faq, explainer, red_flags, before_after_rule]
   - id: capital_gains_tax
     name: "Capital gains tax"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["capital gains", "LTCG", "STCG", "capital gains tax", "indexation", "grandfathering", "tax harvesting"]
     angles: [before_after_rule, what_if_calculator, explainer, myth_bust, faq]
   - id: insurance
     name: "Insurance"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["term insurance", "health insurance", "life insurance", "insurance premium", "ULIP", "LIC", "claim settlement", "insurance claim", "IRDAI", "mediclaim", "बीमा"]
     angles: [myth_bust, mistakes_list, red_flags, checklist, should_you, data_compare]
   - id: loans_emi
     name: "Loans & EMIs"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["home loan", "home loans", "personal loan", "car loan", "education loan", "loan rate", "loan rates", "EMI", "EMIs", "lending rate", "MCLR", "repo-linked", "loan prepayment", "होम लोन", "लोन"]
     angles: [what_if_calculator, should_you, mistakes_list, explainer, myth_bust]
   - id: credit_cards
     name: "Credit cards"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["credit card", "credit cards", "reward points", "lounge access", "card devaluation", "credit card fee", "क्रेडिट कार्ड"]
     angles: [mistakes_list, red_flags, data_compare, myth_bust, checklist]
   - id: credit_score
     name: "Credit score"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["credit score", "CIBIL", "CIBIL score", "credit report", "credit bureau", "सिबिल"]
     angles: [myth_bust, mistakes_list, checklist, faq]
   - id: retirement_pension
     name: "Retirement & pension"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["NPS", "EPF", "EPFO", "PPF", "pension", "pensions", "retirement", "retire early", "FIRE", "UPS", "unified pension scheme", "gratuity", "provident fund", "पेंशन"]
     angles: [what_if_calculator, data_compare, mistakes_list, myth_bust, should_you, checklist]
   - id: fixed_income_savings
     name: "FDs & small savings"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["fixed deposit", "fixed deposits", "FD", "FDs", "FD rate", "FD rates", "post office scheme", "small savings", "senior citizen savings", "SCSS", "Sukanya Samriddhi", "NSC", "recurring deposit", "savings account interest"]
     angles: [data_compare, what_if_calculator, should_you, myth_bust, explainer]
   - id: upi_payments
     name: "UPI & payments"
     bucket: personal_finance
+    genres: [personal_finance, technology]
     keywords: ["UPI", "UPI charges", "UPI limit", "NPCI", "MDR", "digital payments", "यूपीआई"]
     angles: [before_after_rule, explainer, faq, myth_bust, hot_take_news]
   - id: scams_fraud
     name: "Scams & fraud"
     bucket: personal_finance
+    genres: [personal_finance]
     keywords: ["scam", "scams", "fraud", "frauds", "ponzi", "digital arrest", "cyber fraud", "fake app", "investment scam", "phishing", "ठगी", "धोखाधड़ी", "फ्रॉड"]
     angles: [red_flags, checklist, timeline, explainer, faq]
   - id: salary_budgeting
     name: "Salary & budgeting"
     bucket: personal_finance
+    genres: [personal_finance, careers]
     keywords: ["salary", "salaries", "salary hike", "appraisal", "budgeting", "emergency fund", "savings rate", "middle class", "50/30/20", "personal finance", "money management", "financial planning", "सैलरी"]
     angles: [mistakes_list, what_if_calculator, checklist, contrarian_take, myth_bust, poll]
   - id: home_buying
     name: "Home buying"
     bucket: personal_finance
+    genres: [personal_finance, real_estate]
     keywords: ["home buying", "buy a house", "rent vs buy", "property prices", "housing prices", "home prices", "house prices", "housing sales", "RERA", "stamp duty", "real estate prices", "प्रॉपर्टी"]
     angles: [should_you, data_compare, what_if_calculator, mistakes_list, myth_bust]
 
@@ -81,76 +100,91 @@ topics:
   - id: market_moves
     name: "Nifty & Sensex moves"
     bucket: markets
+    genres: [stock_market]
     keywords: ["Sensex", "Nifty", "Nifty 50", "Bank Nifty", "stock market", "share market", "Dalal Street", "market crash", "market rally", "record high", "all-time high", "selloff", "sell-off", "bloodbath", "correction", "bear market", "bull run", "India VIX", "सेंसेक्स", "निफ्टी", "शेयर बाजार"]
     angles: [history_lesson, contrarian_take, myth_bust, data_compare, explainer, hot_take_news, poll]
   - id: rbi_policy
     name: "RBI policy & rates"
     bucket: markets
+    genres: [economy, personal_finance]
     keywords: ["RBI", "repo rate", "MPC", "monetary policy", "rate cut", "rate hike", "Reserve Bank", "CRR", "Sanjay Malhotra", "आरबीआई", "रेपो रेट"]
     angles: [explainer, what_if_calculator, before_after_rule, hot_take_news, history_lesson, faq]
   - id: inflation
     name: "Inflation"
     bucket: markets
+    genres: [economy]
     keywords: ["inflation", "CPI", "WPI", "retail inflation", "food inflation", "महंगाई"]
     angles: [explainer, what_if_calculator, data_compare, history_lesson, myth_bust]
   - id: union_budget
     name: "Union Budget"
     bucket: markets
+    genres: [economy, personal_finance]
     keywords: ["Union Budget", "Budget 2027", "Budget 2027-28", "Finance Minister", "Nirmala Sitharaman", "Sitharaman", "budget announcement", "बजट"]
     angles: [before_after_rule, what_if_calculator, explainer, hot_take_news, faq, checklist]
   - id: gst
     name: "GST"
     bucket: markets
+    genres: [economy]
     keywords: ["GST", "GST council", "GST rate", "GST rates", "GST cut", "goods and services tax", "जीएसटी"]
     angles: [before_after_rule, explainer, what_if_calculator, faq]
   - id: gold_price
     name: "Gold & silver prices"
     bucket: markets
+    genres: [economy, personal_finance]
     keywords: ["gold", "gold price", "gold prices", "gold rate", "gold rates", "silver price", "silver prices", "silver rate", "gold ETF", "sovereign gold bond", "SGB", "digital gold", "gold loan", "सोना", "सोने", "चांदी"]
     angles: [data_compare, history_lesson, myth_bust, should_you, explainer, contrarian_take]
   - id: rupee_forex
     name: "Rupee & forex"
     bucket: markets
+    genres: [economy]
     keywords: ["rupee", "USD/INR", "dollar vs rupee", "forex reserves", "INR", "रुपया"]
     angles: [explainer, what_if_calculator, history_lesson, myth_bust]
   - id: crude_oil
     name: "Crude oil & fuel prices"
     bucket: markets
+    genres: [economy]
     keywords: ["crude oil", "crude", "Brent", "oil prices", "petrol price", "petrol prices", "diesel price", "fuel prices", "OPEC", "कच्चा तेल", "पेट्रोल"]
     angles: [explainer, what_if_calculator, hot_take_news, data_compare]
   - id: us_fed_global
     name: "US Fed & global markets"
     bucket: markets
+    genres: [economy, stock_market]
     keywords: ["Federal Reserve", "US Fed", "FOMC", "Fed rate", "Fed chair", "Wall Street", "S&P 500", "Nasdaq", "Dow Jones", "US recession", "US inflation", "Treasury yields", "US tariffs"]
     angles: [explainer, hot_take_news, history_lesson, what_if_calculator]
   - id: tariffs_trade
     name: "Tariffs & trade"
     bucket: markets
+    genres: [economy]
     keywords: ["tariff", "tariffs", "trade war", "trade deal", "import duty", "customs duty", "H-1B", "टैरिफ"]
     angles: [explainer, hot_take_news, timeline, what_if_calculator]
   - id: fii_dii_flows
     name: "FII/DII flows"
     bucket: markets
+    genres: [stock_market]
     keywords: ["FII", "FIIs", "FPI", "FPIs", "DII", "DIIs", "foreign investors", "foreign portfolio investors", "FPI selling", "FII selling"]
     angles: [explainer, data_compare, history_lesson, contrarian_take]
   - id: gdp_economy
     name: "GDP & economy"
     bucket: markets
+    genres: [economy]
     keywords: ["GDP", "economic growth", "Indian economy", "recession", "PMI", "IIP", "fiscal deficit", "jobs data", "unemployment", "जीडीपी", "अर्थव्यवस्था"]
     angles: [explainer, data_compare, history_lesson, myth_bust]
   - id: banking_news
     name: "Banking news"
     bucket: markets
+    genres: [economy, personal_finance]
     keywords: ["bank merger", "bank failure", "DICGC", "deposit insurance", "bank holiday", "banking sector", "NPA", "NPAs", "bad loans", "cooperative bank", "co-operative bank", "PSU bank", "PSU banks"]
     angles: [explainer, red_flags, faq, timeline]
   - id: sebi_regulation
     name: "SEBI rules"
     bucket: markets
+    genres: [stock_market]
     keywords: ["Sebi", "market regulator", "Tuhin Kanta Pandey", "सेबी"]
     angles: [before_after_rule, explainer, faq, hot_take_news, timeline]
   - id: ipo_buzz
     name: "IPO buzz"
     bucket: markets
+    genres: [stock_market, business]
     keywords: ["IPO", "IPOs", "GMP", "grey market premium", "IPO allotment", "listing gains", "SME IPO", "anchor investors", "आईपीओ"]
     angles: [checklist, mistakes_list, explainer, myth_bust, red_flags, should_you]
 
@@ -158,46 +192,55 @@ topics:
   - id: pms_aif
     name: "PMS & AIFs"
     bucket: wealth
+    genres: [wealth]
     keywords: ["PMS", "portfolio management service", "portfolio management services", "AIF", "AIFs", "alternative investment fund", "alternative investment funds"]
     angles: [explainer, data_compare, should_you, myth_bust]
   - id: estate_succession
     name: "Estate & succession planning"
     bucket: wealth
+    genres: [wealth]
     keywords: ["estate planning", "succession planning", "writing a will", "nominee", "nomination", "inheritance", "family trust", "private trust", "succession law", "वसीयत"]
     angles: [checklist, mistakes_list, explainer, faq]
   - id: nri_investing
     name: "NRI investing"
     bucket: wealth
+    genres: [wealth]
     keywords: ["NRI", "NRIs", "NRE", "NRO", "FEMA", "remittance", "remittances", "LRS", "GIFT City", "एनआरआई"]
     angles: [explainer, checklist, faq, before_after_rule]
   - id: real_estate_vs_equity
     name: "Real estate vs equity"
     bucket: wealth
+    genres: [wealth, real_estate]
     keywords: ["REIT", "REITs", "InvIT", "InvITs", "fractional ownership", "commercial real estate", "rental yield", "real estate vs"]
     angles: [data_compare, should_you, myth_bust, explainer]
   - id: global_investing
     name: "Global investing"
     bucket: wealth
+    genres: [wealth]
     keywords: ["US stocks", "international fund", "international funds", "global investing", "overseas investment", "foreign stocks", "US ETF", "US ETFs"]
     angles: [explainer, data_compare, should_you, checklist]
   - id: bonds_debt
     name: "Bonds & debt"
     bucket: wealth
+    genres: [wealth]
     keywords: ["bond", "bonds", "bond yield", "bond yields", "G-sec", "G-secs", "government securities", "corporate bonds", "RBI Retail Direct", "debt market", "10-year yield"]
     angles: [explainer, data_compare, should_you, myth_bust]
   - id: unlisted_esop
     name: "Unlisted shares & ESOPs"
     bucket: wealth
+    genres: [wealth, business]
     keywords: ["unlisted shares", "pre-IPO", "ESOP", "ESOPs", "startup funding", "angel investor", "angel tax", "unicorn"]
     angles: [explainer, red_flags, what_if_calculator, faq]
   - id: rich_list_wealth
     name: "Rich lists & wealth"
     bucket: wealth
+    genres: [wealth, business]
     keywords: ["billionaire", "billionaires", "richest", "rich list", "Hurun", "Forbes", "net worth", "family office", "ultra-rich", "HNI", "HNIs", "wealthiest"]
     angles: [data_compare, contrarian_take, myth_bust, history_lesson, poll]
   - id: hni_tax_planning
     name: "HNI tax planning"
     bucket: wealth
+    genres: [wealth]
     keywords: ["surcharge", "wealth tax", "HUF", "54EC", "super rich tax", "inheritance tax", "estate duty"]
     angles: [explainer, what_if_calculator, before_after_rule, faq]
 
@@ -205,48 +248,503 @@ topics:
   - id: fno_trading
     name: "F&O trading"
     bucket: trading
+    genres: [stock_market]
     keywords: ["F&O", "futures and options", "options trading", "option trading", "derivatives", "expiry", "intraday", "weekly expiry", "lot size", "एफएंडओ"]
     angles: [myth_bust, mistakes_list, data_compare, red_flags, explainer, contrarian_take]
   - id: stock_moves
     name: "Big stock moves"
     bucket: trading
+    genres: [stock_market]
     keywords: ["shares surge", "shares jump", "shares rally", "shares fall", "shares crash", "shares tank", "shares slump", "stock surges", "stock jumps", "stock falls", "stock crashes", "upper circuit", "lower circuit", "52-week high", "52-week low", "multibagger", "target price", "buy rating", "sell rating"]
     angles: [explainer, timeline, history_lesson, myth_bust, mistakes_list]
   - id: smallcap_penny
     name: "Small caps & penny stocks"
     bucket: trading
+    genres: [stock_market]
     keywords: ["smallcap", "smallcaps", "small-cap", "small cap", "midcap", "midcaps", "mid-cap", "penny stock", "penny stocks", "SME stocks", "microcap"]
     angles: [red_flags, myth_bust, data_compare, mistakes_list, history_lesson]
   - id: corporate_actions
     name: "Dividends, bonuses & splits"
     bucket: trading
+    genres: [stock_market]
     keywords: ["dividend", "dividends", "bonus issue", "bonus shares", "stock split", "buyback", "record date", "rights issue", "ex-dividend"]
     angles: [explainer, checklist, faq, myth_bust]
   - id: earnings_results
     name: "Quarterly results"
     bucket: trading
+    genres: [stock_market, business]
     keywords: ["Q1 results", "Q2 results", "Q3 results", "Q4 results", "quarterly results", "net profit", "earnings", "profit jumps", "profit falls", "revenue growth"]
     angles: [explainer, data_compare, timeline, myth_bust]
   - id: trading_psychology
     name: "Retail trader behaviour"
     bucket: trading
+    genres: [stock_market]
     keywords: ["retail traders", "retail investors", "demat accounts", "demat account", "trading losses", "overtrading", "trading psychology", "lose money"]
     angles: [myth_bust, mistakes_list, contrarian_take, data_compare, poll, red_flags]
   - id: short_seller_fraud
     name: "Short sellers & market fraud"
     bucket: trading
+    genres: [stock_market]
     keywords: ["short seller", "short-seller", "Hindenburg", "promoter pledge", "accounting fraud", "forensic audit", "insider trading", "front running", "front-running", "market manipulation", "pump and dump"]
     angles: [timeline, explainer, red_flags, history_lesson]
   - id: finfluencers
     name: "Finfluencers & tips"
     bucket: trading
+    genres: [stock_market, marketing]
     keywords: ["finfluencer", "finfluencers", "stock tips", "Telegram tips", "trading course", "unregistered advisers", "unregistered advisors"]
     angles: [red_flags, myth_bust, checklist, contrarian_take]
   - id: crypto
     name: "Crypto"
     bucket: trading
+    genres: [crypto]
     keywords: ["crypto", "cryptocurrency", "cryptocurrencies", "bitcoin", "ethereum", "crypto tax", "VDA", "WazirX", "CoinDCX", "क्रिप्टो", "बिटकॉइन"]
     angles: [explainer, myth_bust, red_flags, data_compare, history_lesson]
+
+  # Real estate
+  - id: housing_market_launches
+    name: "Housing market & project launches"
+    genres: [real_estate]
+    keywords: ["real estate", "property market", "housing market", "luxury housing", "luxury homes", "unsold inventory", "ready-to-move", "under-construction", "Anarock", "PropEquity", "Knight Frank", "Square Yards", "Godrej Properties", "DLF", "Lodha", "realty", "CBRE", "JLL", "Colliers", "housing project", "housing projects", "residential project"]
+    angles: [data_compare, should_you, myth_bust, explainer, mistakes_list]
+  - id: rentals_affordable_housing
+    name: "Rentals & affordable housing"
+    genres: [real_estate]
+    keywords: ["rental market", "rent hike", "rent agreement", "tenants", "landlords", "co-living", "PG accommodation", "affordable housing", "PMAY", "Pradhan Mantri Awas Yojana", "housing society", "RWA", "maintenance charges", "tenancy", "security deposit"]
+    angles: [checklist, mistakes_list, faq, myth_bust, red_flags]
+  - id: land_townships_offices
+    name: "Land, townships & office space"
+    genres: [real_estate]
+    keywords: ["land prices", "land acquisition", "land pooling", "township", "townships", "office leasing", "office space", "co-working", "warehousing", "industrial park", "SEZ", "commercial property", "plotted development", "farmland"]
+    angles: [data_compare, explainer, faq, timeline, contrarian_take]
+
+  # Startups & business
+  - id: startup_funding
+    name: "Startup funding & unicorns"
+    genres: [business]
+    keywords: ["startup", "startups", "funding round", "Series A", "Series B", "Series C", "seed funding", "pre-seed", "venture capital", "VC funding", "Peak XV", "Sequoia", "Y Combinator", "unicorns", "decacorn", "angel round", "bootstrapped", "Accel", "Lightspeed", "Elevation Capital", "Blume Ventures", "Nexus Venture Partners", "Tiger Global", "SoftBank", "Bessemer"]
+    angles: [explainer, data_compare, timeline, contrarian_take, faq]
+  - id: deals_business_leaders
+    name: "Mergers, acquisitions & business leaders"
+    genres: [business]
+    keywords: ["acquires", "to acquire", "acquired by", "acquisition of", "acquisition deal", "takeover", "merger", "mergers and acquisitions", "M&A", "stake sale", "joint venture", "buyout", "Tata Sons", "Tata Group", "Reliance Industries", "Adani Group", "Mukesh Ambani", "Gautam Adani", "Anand Mahindra", "Ratan Tata", "Narayana Murthy"]
+    angles: [timeline, explainer, history_lesson, contrarian_take, poll]
+  - id: ecommerce_quick_commerce
+    name: "E-commerce, quick commerce & consumer brands"
+    genres: [business]
+    keywords: ["quick commerce", "Blinkit", "Zepto", "e-commerce", "ecommerce", "D2C", "FMCG", "retail chain", "Flipkart", "Meesho", "Big Billion Days", "Great Indian Festival", "festive sales", "dark stores", "quick-commerce", "Instamart"]
+    angles: [explainer, data_compare, contrarian_take, myth_bust, poll]
+
+  # Careers & jobs
+  - id: hiring_layoffs
+    name: "Hiring, layoffs & the job market"
+    genres: [careers]
+    keywords: ["layoffs", "layoff", "job cuts", "campus placements", "job openings", "job market", "recruitment drive", "freshers", "job losses", "hiring", "laid off", "lay off", "lays off", "cut jobs", "slash jobs", "slashes jobs"]
+    angles: [data_compare, explainer, contrarian_take, poll, checklist, faq]
+  - id: work_culture
+    name: "Work culture & work-life balance"
+    genres: [careers]
+    keywords: ["work from home", "WFH", "return to office", "work-life balance", "70-hour work week", "90-hour work week", "burnout", "toxic workplace", "quiet quitting", "four-day work week", "notice period", "hybrid work", "workplace stress", "work culture", "bad boss", "micromanagement"]
+    angles: [poll, contrarian_take, myth_bust, mistakes_list, red_flags, faq]
+  - id: resumes_interviews_skills
+    name: "Resumes, interviews & upskilling"
+    genres: [careers]
+    keywords: ["resume tips", "resume mistakes", "resume gap", "CV", "interview tips", "job interview", "job interviews", "career switch", "career change", "upskilling", "reskilling", "job hunting", "job seekers", "internship", "internships", "cover letter", "career advice", "first job", "skills in demand"]
+    angles: [checklist, mistakes_list, faq, myth_bust, should_you, poll]
+  - id: government_jobs
+    name: "Government jobs & recruitment"
+    genres: [careers, education]
+    keywords: ["sarkari naukri", "government jobs", "government job", "govt jobs", "recruitment notification", "vacancy", "vacancies", "last date to apply", "SSC", "RRB", "IBPS", "railway recruitment", "bank recruitment", "police recruitment", "teacher recruitment", "सरकारी नौकरी"]
+    angles: [checklist, faq, explainer, mistakes_list, myth_bust]
+
+  # Marketing & creators
+  - id: creator_economy
+    name: "Creator economy & influencers"
+    genres: [marketing]
+    keywords: ["creator economy", "content creator", "content creators", "influencer", "influencers", "YouTuber", "YouTubers", "brand deals", "monetisation", "monetization", "creator fund", "podcaster", "podcasters", "MrBeast", "CarryMinati", "Ranveer Allahbadia", "BeerBiceps", "Dhruv Rathee"]
+    angles: [explainer, contrarian_take, myth_bust, data_compare, poll, mistakes_list]
+  - id: ads_brand_campaigns
+    name: "Ads & brand campaigns"
+    genres: [marketing]
+    keywords: ["ad campaign", "ad campaigns", "advertising", "advertisers", "brand campaign", "brand ambassador", "brand endorsement", "ad film", "viral ad", "marketing campaign", "Cannes Lions", "digital marketing", "brand partnership", "sponsorship deal", "ASCI", "brand collaboration", "ad spends"]
+    angles: [explainer, data_compare, contrarian_take, mistakes_list, history_lesson, poll]
+  - id: social_algorithms
+    name: "Social media algorithms & platform changes"
+    genres: [marketing]
+    keywords: ["Instagram algorithm", "LinkedIn algorithm", "YouTube algorithm", "algorithm change", "social media marketing", "social media strategy", "short-form video", "YouTube Shorts", "Instagram Reels", "LinkedIn creators", "personal branding", "thought leadership", "engagement rate", "hashtags", "social media ban"]
+    angles: [explainer, myth_bust, mistakes_list, checklist, contrarian_take, faq]
+
+  # Tech & gadgets
+  - id: smartphones_gadgets
+    name: "Smartphones & gadget launches"
+    genres: [technology]
+    keywords: ["smartphone", "smartphones", "iPhone", "OnePlus", "Google Pixel", "Nothing Phone", "Xiaomi", "Realme", "foldable phone", "phone launch", "gadgets", "smartwatch", "laptop launch", "iOS", "Android", "Samsung", "Oppo", "Vivo", "iQOO", "Poco", "Infinix", "Motorola", "Redmi", "Snapdragon", "Dimensity", "OLED", "MacBook", "iPad"]
+    angles: [data_compare, should_you, explainer, myth_bust, checklist, poll]
+  - id: big_tech_apps
+    name: "Big Tech & app updates"
+    genres: [technology]
+    keywords: ["Big Tech", "tech giants", "Meta Platforms", "Google Chrome", "Windows 11", "WWDC", "Google I/O", "Apple event", "App Store", "Play Store", "Starlink", "software update", "app update", "WhatsApp update", "WhatsApp feature", "WhatsApp rolls out", "Instagram update", "Instagram feature", "Instagram rolls out", "SIM binding", "Telegram"]
+    angles: [explainer, timeline, contrarian_take, faq, myth_bust, poll]
+  - id: cybersecurity_privacy
+    name: "Cybersecurity & data privacy"
+    genres: [technology]
+    keywords: ["data breach", "data leak", "cyber attack", "cyberattack", "ransomware", "hacking", "hackers", "malware", "DPDP Act", "data protection", "CERT-In", "privacy policy", "password manager", "two-factor authentication", "spyware", "Pegasus", "cybersecurity", "cyber security", "data privacy"]
+    angles: [checklist, red_flags, explainer, mistakes_list, myth_bust, faq]
+  - id: telecom_chips
+    name: "5G, telecom & semiconductors"
+    genres: [technology]
+    keywords: ["5G", "6G", "telecom", "Vodafone Idea", "recharge plans", "spectrum auction", "satellite internet", "broadband", "semiconductor", "semiconductors", "chip manufacturing", "chipmaker", "TSMC", "Foxconn", "telcos", "BSNL", "TRAI", "Jio recharge", "Airtel recharge", "JioFiber", "AirFiber"]
+    angles: [explainer, data_compare, timeline, contrarian_take, faq]
+
+  # AI
+  - id: ai_chatbots_tools
+    name: "AI chatbots & tools"
+    genres: [ai, technology]
+    keywords: ["ChatGPT", "OpenAI", "GPT-5", "Google Gemini", "Gemini AI", "Claude", "Anthropic", "Grok", "xAI", "DeepSeek", "Copilot", "Perplexity", "AI chatbot", "AI chatbots", "AI tool", "AI tools", "AI agent", "AI agents", "generative AI", "GenAI", "Midjourney", "LLM", "LLMs"]
+    angles: [explainer, data_compare, myth_bust, should_you, checklist, poll]
+  - id: ai_industry_india
+    name: "AI industry & India's AI push"
+    genres: [ai, technology]
+    keywords: ["IndiaAI Mission", "Sarvam AI", "Krutrim", "AI startup", "AI startups", "AI summit", "AI Impact Summit", "AI data centre", "AI data centres", "AI chips", "Nvidia", "GPU", "GPUs", "AI investment", "AI adoption", "AI boom", "AI bubble", "artificial intelligence"]
+    angles: [explainer, data_compare, contrarian_take, timeline, faq, poll]
+  - id: ai_risks_regulation
+    name: "AI risks, jobs & regulation"
+    genres: [ai]
+    keywords: ["deepfake", "deepfakes", "AI regulation", "AI law", "AI safety", "AI ethics", "AI bias", "AI hallucination", "AI job losses", "AI replacing jobs", "AI layoffs", "AI copyright", "AI-generated", "AI generated", "AI scam", "AI misuse", "AI governance", "AGI", "superintelligence"]
+    angles: [red_flags, myth_bust, explainer, contrarian_take, faq, poll]
+
+  # Science & space
+  - id: space_missions
+    name: "ISRO, NASA & space missions"
+    genres: [science]
+    keywords: ["ISRO", "NASA", "Gaganyaan", "Chandrayaan", "Aditya-L1", "space mission", "space station", "Starship", "Shubhanshu Shukla", "astronaut", "astronauts", "rocket launch", "satellite launch", "PSLV", "GSLV", "Mars mission", "moon mission", "Artemis", "Blue Origin", "SpaceX launch", "Falcon 9"]
+    angles: [timeline, explainer, history_lesson, faq, myth_bust, poll]
+  - id: sky_events
+    name: "Eclipses, comets & sky events"
+    genres: [science]
+    keywords: ["solar eclipse", "lunar eclipse", "total eclipse", "comet", "meteor shower", "supermoon", "blood moon", "full moon", "planetary alignment", "asteroid", "northern lights", "aurora borealis", "geomagnetic storm", "solar flare", "skywatching", "Perseids", "Geminids", "Leonids"]
+    angles: [explainer, timeline, faq, myth_bust, checklist]
+  - id: discoveries_research
+    name: "Scientific discoveries & research"
+    genres: [science]
+    keywords: ["Nobel Prize", "quantum computing", "quantum computer", "nuclear fusion", "dinosaur", "fossils", "fossil record", "fossil remains", "archaeologists", "CERN", "James Webb", "black hole", "black holes", "exoplanet", "IISc", "DRDO", "CSIR", "Higgs boson", "particle physics", "genome"]
+    angles: [explainer, myth_bust, timeline, faq, history_lesson]
+
+  # Cricket
+  - id: ipl_franchises
+    name: "IPL & franchises"
+    genres: [cricket]
+    keywords: ["IPL", "Indian Premier League", "mega auction", "Mumbai Indians", "Chennai Super Kings", "Royal Challengers", "Kolkata Knight Riders", "Sunrisers Hyderabad", "Gujarat Titans", "Rajasthan Royals", "Lucknow Super Giants", "Punjab Kings", "Delhi Capitals", "RCB", "CSK", "आईपीएल"]
+    angles: [timeline, data_compare, history_lesson, poll, explainer, contrarian_take]
+  - id: team_india_series
+    name: "Team India & international series"
+    genres: [cricket]
+    keywords: ["Team India", "Indian cricket team", "Test series", "T20I", "World Test Championship", "Asia Cup", "Border-Gavaskar Trophy", "BCCI", "ICC", "ODI", "Test cricket", "playing XI", "Ashes series", "क्रिकेट", "T20", "T20Is", "ODIs", "IND vs NZ", "IND vs AUS", "IND vs ENG", "IND vs PAK", "IND vs SA", "IND vs WI", "IND vs BAN", "IND vs SL", "India vs New Zealand", "India vs Australia", "India vs England", "India vs South Africa", "India vs West Indies", "India vs Pakistan", "Cricket Australia", "Pakistan Cricket Board", "Cricket South Africa"]
+    angles: [timeline, data_compare, history_lesson, poll, explainer, myth_bust]
+  - id: cricket_stars
+    name: "Cricket stars & selection"
+    genres: [cricket]
+    keywords: ["Kohli", "Rohit Sharma", "Dhoni", "Bumrah", "Shubman Gill", "Hardik Pandya", "Jadeja", "Rishabh Pant", "Tendulkar", "KL Rahul", "Suryakumar Yadav", "Yashasvi Jaiswal", "Siraj", "Ravichandran Ashwin", "Kuldeep Yadav", "Sanju Samson", "Shreyas Iyer", "selection committee", "Agarkar", "Gautam Gambhir", "Harry Brook", "Joe Root", "Ben Stokes", "Steve Smith", "Pat Cummins", "Travis Head", "Mitchell Starc", "Babar Azam", "Shaheen Afridi", "Kane Williamson", "Jos Buttler", "Jofra Archer", "Rashid Khan", "Arshdeep Singh", "Axar Patel", "Washington Sundar", "Tilak Varma", "Naman Dhir"]
+    angles: [poll, contrarian_take, data_compare, history_lesson, explainer, faq]
+  - id: womens_cricket
+    name: "Women's cricket"
+    genres: [cricket]
+    keywords: ["Women's World Cup", "Women's Premier League", "WPL", "Smriti Mandhana", "Harmanpreet Kaur", "Jemimah Rodrigues", "Shafali Verma", "Deepti Sharma", "Richa Ghosh", "Renuka Singh", "Women in Blue", "women's cricket", "Ellyse Perry", "Alyssa Healy", "Women’s World Cup", "Women’s Premier League", "women’s cricket"]
+    angles: [timeline, poll, history_lesson, data_compare, explainer]
+  - id: domestic_leagues_cricket
+    name: "Domestic cricket & T20 leagues"
+    genres: [cricket]
+    keywords: ["Duleep Trophy", "Vijay Hazare Trophy", "Syed Mushtaq Ali", "Irani Cup", "SA20", "Big Bash", "The Hundred", "County Championship", "Caribbean Premier League", "ILT20", "Major League Cricket", "Pakistan Super League", "Impact Player", "domestic cricket", "Ranji"]
+    angles: [explainer, data_compare, history_lesson, poll, myth_bust]
+
+  # Football
+  - id: isl_indian_football
+    name: "ISL & Indian football"
+    genres: [football]
+    keywords: ["Indian Super League", "ISL", "Sunil Chhetri", "Mohun Bagan", "East Bengal", "Kerala Blasters", "Bengaluru FC", "FC Goa", "Mumbai City FC", "Blue Tigers", "AIFF", "Durand Cup", "I-League", "Indian football", "Manolo Marquez"]
+    angles: [timeline, explainer, data_compare, poll, contrarian_take]
+  - id: european_football
+    name: "European football & clubs"
+    genres: [football]
+    keywords: ["EPL", "English Premier League", "La Liga", "Champions League", "Europa League", "Serie A", "Bundesliga", "Real Madrid", "FC Barcelona", "Manchester United", "Manchester City", "Liverpool", "Arsenal", "Chelsea FC", "Tottenham", "Bayern Munich", "Juventus", "PSG", "FA Cup", "UEFA", "transfer window"]
+    angles: [data_compare, poll, history_lesson, contrarian_take, explainer]
+  - id: football_stars_world_cup
+    name: "Messi, Ronaldo & the FIFA World Cup"
+    genres: [football]
+    keywords: ["Messi", "Ronaldo", "Neymar", "Mbappe", "Mbappé", "Haaland", "FIFA", "Inter Miami", "Al Nassr", "Lamine Yamal", "Vinicius Junior", "Jude Bellingham", "Ballon d'Or", "Copa America", "Ballon d’Or"]
+    angles: [poll, data_compare, history_lesson, contrarian_take, explainer, faq]
+
+  # Other sports
+  - id: olympics_athletics
+    name: "Olympics & athletics"
+    genres: [sports]
+    keywords: ["Olympics", "Olympic Games", "Olympian", "Olympic medal", "LA 2028", "Asian Games", "Commonwealth Games", "Neeraj Chopra", "Manu Bhaker", "Mirabai Chanu", "Vinesh Phogat", "Diamond League", "athletics", "javelin", "Paralympics", "Paralympic", "Asian Para Games", "Para Asiad", "para athlete", "para athletes"]
+    angles: [timeline, history_lesson, poll, data_compare, explainer, faq]
+  - id: tennis_grand_slams
+    name: "Tennis & Grand Slams"
+    genres: [sports]
+    keywords: ["Wimbledon", "US Open", "French Open", "Australian Open", "Roland Garros", "Grand Slam", "Novak Djokovic", "Carlos Alcaraz", "Jannik Sinner", "Rafael Nadal", "Roger Federer", "Sumit Nagal", "ATP", "WTA", "Rohan Bopanna", "Davis Cup"]
+    angles: [data_compare, history_lesson, poll, timeline, explainer]
+  - id: badminton_hockey_kabaddi
+    name: "Badminton, hockey & kabaddi"
+    genres: [sports]
+    keywords: ["PV Sindhu", "Lakshya Sen", "Satwiksairaj Rankireddy", "Chirag Shetty", "BWF", "All England Championships", "Thomas Cup", "PKL", "Harmanpreet Singh", "PR Sreejesh", "Asian Champions Trophy", "Kidambi Srikanth", "badminton", "hockey", "kabaddi"]
+    angles: [timeline, poll, data_compare, history_lesson, explainer]
+  - id: formula_1
+    name: "Formula 1 & motorsport"
+    genres: [sports]
+    keywords: ["F1", "Formula 1", "Formula One", "Grand Prix", "Lewis Hamilton", "Lando Norris", "Charles Leclerc", "Oscar Piastri", "MotoGP", "pole position", "Red Bull Racing", "Verstappen"]
+    angles: [data_compare, timeline, history_lesson, poll, explainer, contrarian_take]
+  - id: chess
+    name: "Chess & Indian grandmasters"
+    genres: [sports]
+    keywords: ["Gukesh", "Praggnanandhaa", "Viswanathan Anand", "Magnus Carlsen", "FIDE", "grandmaster", "Humpy Koneru", "Divya Deshmukh", "Arjun Erigaisi", "Candidates Tournament", "Vidit Gujrathi", "chess"]
+    angles: [explainer, timeline, history_lesson, poll, data_compare]
+
+  # Movies & Bollywood
+  - id: box_office_releases
+    name: "Box office & new releases"
+    genres: [movies]
+    keywords: ["Bollywood", "box office", "opening weekend", "first-day collection", "day 1 collection", "crore club", "theatrical release", "film trailer", "movie trailer", "official trailer", "teaser", "hit or flop", "worldwide collection", "बॉलीवुड"]
+    angles: [data_compare, timeline, poll, contrarian_take, explainer, faq]
+  - id: bollywood_stars
+    name: "Bollywood stars & celebrity news"
+    genres: [movies]
+    keywords: ["Shah Rukh Khan", "Salman Khan", "Aamir Khan", "Akshay Kumar", "Ranveer Singh", "Deepika Padukone", "Alia Bhatt", "Ranbir Kapoor", "Katrina Kaif", "Vicky Kaushal", "Hrithik Roshan", "Priyanka Chopra", "Kareena Kapoor", "Saif Ali Khan", "Ajay Devgn", "Kartik Aaryan", "Shahid Kapoor", "Kiara Advani", "Amitabh Bachchan", "SRK", "Tiger Shroff", "Sunny Deol", "Sanjay Leela Bhansali", "Aishwarya Rai", "Karan Johar", "Anushka Sharma", "Madhuri Dixit", "Janhvi Kapoor", "Ananya Panday", "Sara Ali Khan", "Varun Dhawan", "Rajkummar Rao", "Ayushmann Khurrana", "Aryan Khan", "Suhana Khan"]
+    angles: [poll, contrarian_take, history_lesson, data_compare, faq]
+  - id: south_indian_cinema
+    name: "South Indian cinema"
+    genres: [movies]
+    keywords: ["Tollywood", "Kollywood", "Mollywood", "Sandalwood", "Telugu cinema", "Tamil cinema", "Malayalam cinema", "Kannada cinema", "Telugu film", "Tamil film", "Allu Arjun", "Prabhas", "Jr NTR", "Ram Charan", "Rajinikanth", "Kamal Haasan", "Mahesh Babu", "Vijay Deverakonda", "Rashmika Mandanna", "Baahubali", "Rajamouli"]
+    angles: [data_compare, poll, history_lesson, explainer, contrarian_take]
+  - id: film_awards
+    name: "Film awards & festivals"
+    genres: [movies]
+    keywords: ["Oscars", "Academy Awards", "Oscar nomination", "Oscar-winning", "Filmfare Awards", "National Film Awards", "IIFA", "Cannes Film Festival", "Golden Globes", "BAFTA", "Screen Awards", "IFFI", "Toronto International Film Festival", "Venice Film Festival", "Dadasaheb Phalke Award", "Best Actor", "Best Film"]
+    angles: [timeline, poll, history_lesson, data_compare, explainer, faq]
+
+  # OTT & TV
+  - id: ott_platforms_releases
+    name: "OTT platforms & new releases"
+    genres: [ott_tv]
+    keywords: ["OTT", "Netflix", "Prime Video", "JioHotstar", "Hotstar", "SonyLIV", "Zee5", "web series", "streaming platform", "streaming date", "binge-watch"]
+    angles: [data_compare, poll, explainer, contrarian_take, faq, should_you]
+  - id: tv_reality_shows
+    name: "TV serials & reality shows"
+    genres: [ott_tv]
+    keywords: ["Bigg Boss", "Kaun Banega Crorepati", "KBC", "Khatron Ke Khiladi", "Indian Idol", "Anupamaa", "TRP", "BARC", "reality show", "daily soap", "Kapil Sharma Show", "Shark Tank India", "Naagin", "MasterChef India", "Roadies", "Dance Deewane", "Taarak Mehta Ka Ooltah Chashmah"]
+    angles: [poll, contrarian_take, data_compare, timeline, explainer]
+  - id: web_series_hits
+    name: "Hit web series & new seasons"
+    genres: [ott_tv]
+    keywords: ["The Family Man", "Paatal Lok", "Squid Game", "Stranger Things", "Game of Thrones", "House of the Dragon", "Sacred Games", "Kota Factory", "Heeramandi", "Money Heist", "Black Mirror", "Delhi Crime", "season finale"]
+    angles: [poll, timeline, data_compare, history_lesson, explainer, faq]
+
+  # Music
+  - id: singers_artists
+    name: "Singers & artists"
+    genres: [music]
+    keywords: ["Arijit Singh", "Shreya Ghoshal", "Sonu Nigam", "AR Rahman", "A.R. Rahman", "Badshah", "Honey Singh", "Diljit Dosanjh", "Karan Aujla", "Neha Kakkar", "Jubin Nautiyal", "Anirudh Ravichander", "Atif Aslam", "Sidhu Moosewala", "AP Dhillon", "Sunidhi Chauhan", "Lata Mangeshkar", "Kishore Kumar"]
+    angles: [poll, history_lesson, contrarian_take, data_compare, explainer]
+  - id: concerts_tours
+    name: "Concerts & live shows"
+    genres: [music]
+    keywords: ["concert", "concerts", "world tour", "Coldplay", "Ed Sheeran", "Dil-Luminati", "Lollapalooza", "Sunburn", "Coachella", "music festival", "Dua Lipa", "Taylor Swift", "Justin Bieber", "BookMyShow"]
+    angles: [poll, checklist, timeline, mistakes_list, faq, explainer]
+  - id: music_industry_awards
+    name: "Music industry, streaming & awards"
+    genres: [music]
+    keywords: ["Spotify", "JioSaavn", "Gaana", "YouTube Music", "Apple Music", "T-Series", "Saregama", "music label", "Billboard Hot 100", "Billboard charts", "Grammy", "Grammys", "Rolling Stone", "music chart", "music streaming"]
+    angles: [data_compare, explainer, history_lesson, contrarian_take, poll]
+
+  # Gaming
+  - id: esports_bgmi
+    name: "Esports & BGMI"
+    genres: [gaming]
+    keywords: ["esports", "e-sports", "BGMI", "Free Fire", "Battlegrounds Mobile India", "Krafton", "Valorant", "Counter-Strike", "CS2", "Dota 2", "Skyesports", "Nodwin Gaming", "Dynamo Gaming", "BGIS", "BGMS"]
+    angles: [poll, explainer, data_compare, timeline, contrarian_take]
+  - id: game_releases_consoles
+    name: "Game releases & consoles"
+    genres: [gaming]
+    keywords: ["GTA 6", "GTA VI", "Grand Theft Auto", "PlayStation", "PS5", "PS6", "Xbox", "Nintendo", "Epic Games", "Call of Duty", "Fortnite", "Minecraft", "Roblox", "Elden Ring", "Rockstar Games", "Assassin's Creed", "Game Awards", "game release", "game trailer", "Steam", "Valve", "video game", "video games", "gamers", "Assassin’s Creed"]
+    angles: [data_compare, poll, timeline, explainer, should_you, contrarian_take]
+  - id: online_gaming_law
+    name: "Online gaming law & mobile games"
+    genres: [gaming]
+    keywords: ["online gaming", "real money gaming", "Dream11", "My11Circle", "fantasy sports", "fantasy gaming", "rummy", "betting apps", "gaming industry", "mobile gaming", "mobile games", "Ludo King", "Garena", "Nazara", "MPL"]
+    angles: [explainer, timeline, faq, before_after_rule, red_flags, myth_bust]
+
+  # Health & fitness
+  - id: fitness_workouts
+    name: "Fitness & workouts"
+    genres: [health]
+    keywords: ["fitness", "workout", "workouts", "gym", "yoga", "weight loss", "weight training", "marathon", "10,000 steps", "cardio", "strength training", "Pilates", "HIIT", "calisthenics", "weight-loss", "Ozempic", "Wegovy", "Mounjaro", "GLP-1"]
+    angles: [checklist, myth_bust, mistakes_list, faq, poll, should_you]
+  - id: nutrition_diet
+    name: "Diet & nutrition"
+    genres: [health, food]
+    keywords: ["diet plan", "diet tips", "healthy diet", "balanced diet", "intermittent fasting", "keto", "calorie", "calories", "protein intake", "vitamin D", "vitamin B12", "gut health", "probiotics", "superfood", "sugar intake", "ultra-processed food", "ultra-processed foods", "millets", "nutritionist", "dietitian", "healthy eating", "low-carb", "cholesterol"]
+    angles: [myth_bust, checklist, mistakes_list, faq, data_compare, poll]
+  - id: diseases_medicines
+    name: "Diseases, outbreaks & medicines"
+    genres: [health]
+    keywords: ["dengue", "malaria", "chikungunya", "H3N2", "COVID", "Nipah", "mpox", "HMPV", "heart attack", "cardiac arrest", "diabetes", "cancer treatment", "breast cancer", "lung cancer", "ICMR", "CDSCO", "cough syrup", "drug recall", "Ayushman Bharat", "vaccine", "vaccination", "health alert", "flu", "mosquito"]
+    angles: [checklist, myth_bust, faq, red_flags, explainer, timeline]
+  - id: mental_health
+    name: "Mental health & well-being"
+    genres: [health]
+    keywords: ["mental health", "clinical depression", "postpartum depression", "anxiety disorder", "anxiety disorders", "anxiety attacks", "anxiety symptoms", "social anxiety", "therapy", "therapist", "burnout", "loneliness", "insomnia", "sleep deprivation", "mindfulness", "meditation", "digital detox", "self-care", "panic attack", "stress management"]
+    angles: [checklist, myth_bust, mistakes_list, faq, poll, explainer]
+
+  # Food
+  - id: restaurants_food_delivery
+    name: "Restaurants & food delivery"
+    genres: [food]
+    keywords: ["restaurant", "restaurants", "food delivery", "cloud kitchen", "street food", "food festival", "Michelin", "fine dining", "dine-out", "Starbucks", "KFC", "McDonald", "Burger King", "dhaba", "delivery partners"]
+    angles: [data_compare, poll, explainer, contrarian_take, myth_bust, faq]
+  - id: recipes_cooking
+    name: "Recipes & cooking"
+    genres: [food]
+    keywords: ["recipe", "recipes", "cooking tips", "kitchen hacks", "kitchen tips", "chef", "chefs", "MasterChef", "Sanjeev Kapoor", "Ranveer Brar", "Kunal Kapur", "Tarla Dalal", "biryani", "paneer", "dosa"]
+    angles: [checklist, mistakes_list, myth_bust, faq, poll, explainer]
+  - id: food_safety_trends
+    name: "Food safety & food trends"
+    genres: [food, health]
+    keywords: ["FSSAI", "food safety", "food adulteration", "adulterated", "food poisoning", "expiry date", "nutrition label", "junk food", "sugar tax", "trans fat", "banned food", "food recall", "mango season", "organic food", "plant-based", "vegan", "food trends"]
+    angles: [red_flags, checklist, myth_bust, faq, explainer, mistakes_list]
+
+  # Travel
+  - id: destinations_visas
+    name: "Destinations, visas & trip ideas"
+    genres: [travel]
+    keywords: ["travel guide", "tourist destination", "tourist destinations", "tourist places", "hill station", "hill stations", "weekend getaway", "bucket list", "honeymoon destinations", "visa-free", "visa on arrival", "e-visa", "Schengen visa", "tourism", "travel tips", "backpacking", "road trip"]
+    angles: [checklist, mistakes_list, data_compare, should_you, poll, faq]
+  - id: flights_airlines
+    name: "Flights, airlines & airports"
+    genres: [travel]
+    keywords: ["IndiGo", "Air India", "Akasa Air", "SpiceJet", "flight delay", "flight delays", "flight cancellations", "DGCA", "airport", "airports", "airfare", "airfares", "cabin crew", "airline", "airlines", "flights", "air connectivity", "aviation sector", "Indian aviation"]
+    angles: [data_compare, red_flags, explainer, timeline, checklist, faq]
+  - id: railways_irctc
+    name: "Railways, trains & IRCTC"
+    genres: [travel]
+    keywords: ["IRCTC", "Indian Railways", "Vande Bharat", "train ticket", "train tickets", "Tatkal", "railway ticket", "RAC", "Rajdhani", "Shatabdi", "Amrit Bharat", "bullet train", "railway station", "trains cancelled", "Railway Board", "Kavach", "sleeper class"]
+    angles: [checklist, mistakes_list, faq, before_after_rule, data_compare, explainer]
+
+  # Fashion & beauty
+  - id: fashion_weeks_designers
+    name: "Fashion weeks & designers"
+    genres: [fashion]
+    keywords: ["fashion week", "Met Gala", "red carpet", "ramp walk", "Sabyasachi", "Manish Malhotra", "Gaurav Gupta", "Anita Dongre", "couture", "fashion designer", "designer wear", "Vogue", "fashion show", "fashion label"]
+    angles: [poll, history_lesson, data_compare, explainer, contrarian_take]
+  - id: beauty_skincare
+    name: "Beauty, skincare & grooming"
+    genres: [fashion]
+    keywords: ["skincare", "skin care", "sunscreen", "SPF", "makeup", "make-up", "haircare", "hair care", "hair fall", "face serum", "vitamin C serum", "moisturiser", "moisturizer", "K-beauty", "Nykaa", "Sephora", "beauty tips", "beauty brand", "dermatologist", "lipstick", "perfume"]
+    angles: [myth_bust, checklist, mistakes_list, faq, poll, should_you]
+  - id: fashion_trends_retail
+    name: "Fashion trends, ethnic wear & retail"
+    genres: [fashion]
+    keywords: ["fashion trends", "trending outfits", "streetwear", "sneakers", "ethnic wear", "saree", "sarees", "lehenga", "wedding fashion", "bridal wear", "fast fashion", "Myntra", "Zara", "H&M", "Shein", "thrift", "thrifting", "Gen Z fashion", "handloom", "denim"]
+    angles: [poll, data_compare, mistakes_list, checklist, contrarian_take, myth_bust]
+
+  # Cars & bikes
+  - id: car_launches
+    name: "Car launches & reviews"
+    genres: [auto]
+    keywords: ["car launch", "car launches", "new car", "SUV", "SUVs", "sedan", "hatchback", "Maruti Suzuki", "Mahindra Thar", "Mahindra XUV", "Tata Punch", "Toyota", "Kia", "Honda Elevate", "car price", "ex-showroom", "on-road price", "test drive", "first drive", "mileage", "ADAS", "Bolero", "Scorpio-N", "XUV700", "Dzire", "Baleno", "Brezza", "Creta", "Nexon", "Harrier", "Seltos", "Innova", "Fortuner", "Fronx", "Ertiga", "Sonet", "Hyundai", "Skoda", "Volkswagen", "MG Windsor", "carmaker", "carmakers", "automaker", "automakers", "car sales", "passenger vehicle", "passenger vehicles", "facelift", "CNG car", "CNG cars", "automatic cars"]
+    angles: [should_you, data_compare, checklist, mistakes_list, poll, myth_bust]
+  - id: electric_vehicles
+    name: "Electric vehicles & charging"
+    genres: [auto]
+    keywords: ["electric vehicle", "electric vehicles", "EV", "EVs", "electric car", "electric cars", "electric scooter", "charging stations", "battery swapping", "Tesla India", "BYD", "Ola Electric", "Ather", "range anxiety", "solid-state battery", "FAME", "PM E-DRIVE", "hybrid cars", "strong hybrid", "Tesla Model Y"]
+    angles: [data_compare, should_you, myth_bust, explainer, checklist, contrarian_take]
+  - id: bikes_scooters
+    name: "Bikes & scooters"
+    genres: [auto]
+    keywords: ["Royal Enfield", "bike launch", "motorcycle", "motorcycles", "scooter", "scooters", "Hero MotoCorp", "Bajaj Auto", "TVS Motor", "KTM", "Yamaha", "Ducati", "Harley-Davidson", "two-wheeler", "two-wheelers", "superbike", "Classic 350", "Himalayan 450", "Hunter 350", "Pulsar", "Splendor", "Activa", "Apache", "Interceptor", "Bullet 350", "Meteor 350", "Chetak"]
+    angles: [should_you, data_compare, checklist, poll, myth_bust, mistakes_list]
+  - id: traffic_rules_car_safety
+    name: "Traffic rules & car safety"
+    genres: [auto]
+    keywords: ["Bharat NCAP", "Global NCAP", "Euro NCAP", "crash test", "airbags", "seat belt", "traffic challan", "e-challan", "traffic fines", "Motor Vehicles Act", "driving licence", "driving license", "FASTag", "toll plaza", "RTO", "helmet", "speed limit", "road safety", "number plate", "HSRP", "vehicle registration", "PUC certificate"]
+    angles: [checklist, before_after_rule, mistakes_list, faq, myth_bust, red_flags]
+
+  # Spirituality & astrology
+  - id: horoscope_astrology
+    name: "Horoscope & astrology"
+    genres: [spirituality]
+    keywords: ["horoscope", "rashifal", "zodiac", "astrology", "astrologer", "astrologers", "Mercury retrograde", "Shani", "Rahu", "Ketu", "planetary transit", "Vastu", "numerology", "tarot", "kundli", "Panchang", "राशिफल", "पंचांग"]
+    angles: [poll, myth_bust, faq, explainer, contrarian_take, checklist]
+  - id: festivals_muhurat
+    name: "Festivals, puja & muhurat"
+    genres: [spirituality]
+    keywords: ["Diwali", "Navratri", "Durga Puja", "Ganesh Chaturthi", "Holi", "Raksha Bandhan", "Janmashtami", "Dussehra", "Karwa Chauth", "Maha Shivratri", "Ekadashi", "Purnima", "Amavasya", "Akshaya Tritiya", "Dhanteras", "Chhath Puja", "Makar Sankranti", "puja muhurat", "shubh muhurat", "puja vidhi", "vrat katha"]
+    angles: [checklist, faq, explainer, timeline, myth_bust, poll]
+  - id: temples_pilgrimages
+    name: "Temples & pilgrimages"
+    genres: [spirituality]
+    keywords: ["temple", "temples", "pilgrimage", "pilgrims", "Ram Mandir", "Ayodhya", "Tirupati", "Kedarnath", "Badrinath", "Char Dham", "Kumbh Mela", "Maha Kumbh", "Amarnath Yatra", "Vaishno Devi", "Sabarimala", "Kashi Vishwanath", "Mahakal", "Somnath", "Jagannath", "Kailash Mansarovar", "Shirdi", "darshan"]
+    angles: [checklist, faq, explainer, timeline, data_compare, poll]
+
+  # Politics & current affairs
+  - id: elections_campaigns
+    name: "Elections & campaigns"
+    genres: [politics]
+    keywords: ["bypoll", "exit poll", "exit polls", "EVM", "voter list", "voter turnout", "vote counting", "manifesto", "BJP", "Congress", "AAP", "TMC", "NDA allies", "NDA government", "INDIA bloc", "चुनाव", "election", "elections", "SIR", "Special Intensive Revision", "BLO", "BLOs", "electoral roll", "electoral rolls", "poll panel"]
+    angles: [data_compare, timeline, explainer, poll, history_lesson, contrarian_take]
+  - id: parliament_government
+    name: "Parliament, bills & government decisions"
+    genres: [politics]
+    keywords: ["Parliament", "Lok Sabha passes", "Lok Sabha adjourned", "Lok Sabha Speaker", "Om Birla", "Rajya Sabha", "monsoon session", "winter session", "Budget session", "Waqf", "One Nation One Election", "Uniform Civil Code", "Union Cabinet", "ordinance", "Supreme Court", "PM Modi", "Narendra Modi", "Amit Shah", "Rahul Gandhi"]
+    angles: [explainer, before_after_rule, timeline, faq, myth_bust, poll]
+  - id: state_politics
+    name: "State politics & chief ministers"
+    genres: [politics]
+    keywords: ["chief minister", "Yogi Adityanath", "Mamata Banerjee", "Arvind Kejriwal", "Nitish Kumar", "Chandrababu Naidu", "Revanth Reddy", "MK Stalin", "Siddaramaiah", "Eknath Shinde", "Devendra Fadnavis", "Uddhav Thackeray", "Himanta Biswa Sarma", "Pinarayi Vijayan", "Mohan Yadav", "Rekha Gupta", "Omar Abdullah", "Hemant Soren"]
+    angles: [poll, timeline, contrarian_take, explainer, history_lesson, faq]
+  - id: foreign_policy_defence
+    name: "Foreign policy & defence"
+    genres: [politics]
+    keywords: ["foreign policy", "External Affairs Minister", "Jaishankar", "Operation Sindoor", "LAC", "Line of Control", "India-China", "India-Pakistan", "India-US", "Quad summit", "BRICS", "G20", "G7", "UN Security Council", "Indian Army", "Indian Navy", "Indian Air Force", "defence deal", "Rafale", "Ukraine war", "Gaza"]
+    angles: [explainer, timeline, history_lesson, contrarian_take, faq, myth_bust]
+
+  # Education & exams
+  - id: exams_results
+    name: "Exams, results & admit cards"
+    genres: [education]
+    keywords: ["NEET", "CBSE", "CUET", "UPSC", "GATE", "CLAT", "board exam", "board exams", "admit card", "hall ticket", "answer key", "cut-off marks", "cutoff marks", "expected cut-off", "cut-off list", "toppers", "date sheet", "ICSE", "NTA", "paper leak", "merit list", "MBBS", "CTET", "STET", "KVS", "NVS", "JEE"]
+    angles: [checklist, faq, mistakes_list, data_compare, explainer, timeline]
+  - id: admissions_colleges
+    name: "Admissions, colleges & rankings"
+    genres: [education]
+    keywords: ["admissions", "admission process", "counselling", "JoSAA", "IIT", "IIM", "NIT", "NIRF", "university rankings", "Delhi University", "JNU", "seat allotment", "convocation", "scholarship", "scholarships", "MBBS seats", "vacant seats"]
+    angles: [data_compare, checklist, faq, myth_bust, should_you, explainer]
+  - id: education_policy_schools
+    name: "Education policy & schools"
+    genres: [education]
+    keywords: ["NEP", "National Education Policy", "UGC", "AICTE", "Ministry of Education", "Education Minister", "Dharmendra Pradhan", "three-language policy", "school fees", "school closure", "school holidays", "NCERT", "textbooks", "syllabus revision", "coaching centres", "coaching institutes", "student suicides", "ragging"]
+    angles: [explainer, before_after_rule, timeline, faq, contrarian_take, poll]
+  - id: study_abroad
+    name: "Study abroad & student visas"
+    genres: [education]
+    keywords: ["study abroad", "student visa", "student visas", "F-1 visa", "international students", "Indian students abroad", "IELTS", "TOEFL", "GRE", "GMAT", "SAT", "OPT", "study permit", "Duolingo English Test", "student loan"]
+    angles: [checklist, mistakes_list, faq, should_you, explainer, before_after_rule]
+
+  # Environment & weather
+  - id: weather_monsoon_alerts
+    name: "Monsoon, heatwaves & weather alerts"
+    genres: [environment]
+    keywords: ["monsoon rains", "monsoon onset", "monsoon arrives", "monsoon advances", "monsoon forecast", "monsoon deficit", "monsoon withdrawal", "southwest monsoon", "heatwave", "heat wave", "cold wave", "IMD", "weather alert", "red alert", "orange alert", "yellow alert", "cyclone", "rainfall", "heavy rain", "cloudburst", "floods", "landslides", "landslide warning", "western disturbance", "El Niño", "La Niña", "El Nino", "La Nina", "weather forecast", "Skymet", "dense fog", "earthquake", "मौसम", "northeast monsoon", "North-East monsoon", "monsoon preparedness", "monsoon preparations", "pre-monsoon", "post-monsoon"]
+    angles: [checklist, faq, timeline, explainer, data_compare, myth_bust]
+  - id: air_pollution_aqi
+    name: "Air pollution & AQI"
+    genres: [environment, health]
+    keywords: ["AQI", "air quality", "air pollution", "Delhi pollution", "smog", "GRAP", "stubble burning", "PM2.5", "PM10", "air purifier", "air purifiers", "pollution levels", "severe category", "Clean Air", "green crackers", "firecrackers ban"]
+    angles: [checklist, data_compare, myth_bust, faq, red_flags, timeline]
+  - id: climate_wildlife_energy
+    name: "Climate, wildlife & clean energy"
+    genres: [environment]
+    keywords: ["climate change", "global warming", "COP30", "COP31", "carbon emissions", "net zero", "greenhouse gas", "renewable energy", "solar power", "green hydrogen", "wildlife", "tiger reserve", "Project Tiger", "man-animal conflict", "national park", "deforestation", "forest cover", "single-use plastic", "biodiversity", "glacier", "sea level"]
+    angles: [explainer, data_compare, myth_bust, timeline, faq, history_lesson]
 
 # Words that mark text as finance-related (lowercase; used by new-phrase detection).
 finance_vocab: [market, markets, stock, stocks, share, shares, sensex, nifty, ipo, tax, taxes, rbi, sebi, loan, loans, bank, banks, fund, funds, invest, investing, investor, investors, investment, rupee, crore, lakh, price, prices, rate, rates, gold, silver, crypto, bitcoin, gdp, inflation, profit, earnings, dividend, insurance, salary, emi, upi, gst, budget, economy, finance, financial, money, wealth, trading, trader, traders, nse, bse, sip, mutual, शेयर, बाजार, निवेश, टैक्स, रुपया, सोना, बैंक]
