@@ -11,7 +11,7 @@ from radar import digest as digest_mod
 from radar.collectors import Collector, Context, run_all
 from radar.collectors import google_news, google_trends, markets, news_feeds, reddit, regulators, x_trends, youtube
 from radar.config import Config
-from radar.matcher import Matcher
+from radar.matcher import Matcher, genre_ok
 from radar.models import Signal
 from radar.store import Store
 from radar.timeutil import from_iso, to_iso
@@ -83,7 +83,8 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
 
     matcher = Matcher(cfg.topics)
     for item_id, sig in new_items:
-        topic_ids = set(matcher.match(f"{sig.title} {sig.text[:500]}"))
+        topic_ids = {t for t in matcher.match(f"{sig.title} {sig.text[:500]}")
+                     if genre_ok(cfg.topic_map[t].genres, sig.genres, cfg.finance_genres)}
         if sig.topic_hint:
             topic_ids.add(sig.topic_hint)
         if topic_ids:

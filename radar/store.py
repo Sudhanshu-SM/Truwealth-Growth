@@ -142,6 +142,11 @@ class Store:
         self.conn = sqlite3.connect(str(self.path))
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        # `genres` is added here rather than in SCHEMA, so a new database and one restored from the Actions cache
+        # (written before genres existed) end up the same.
+        for table in ("items", "emerging_topics"):
+            if "genres" not in {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})")}:
+                self.conn.execute(f"ALTER TABLE {table} ADD COLUMN genres TEXT NOT NULL DEFAULT ''")
 
     def close(self) -> None:
         self.conn.commit()
@@ -165,10 +170,10 @@ class Store:
                 continue
             self.conn.execute(
                 "INSERT INTO items (id, source, source_type, feed, title, url, published_at, first_seen_at, "
-                "last_seen_at, lang, text, metrics_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "last_seen_at, lang, text, metrics_json, genres) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (iid, sig.source, sig.source_type, sig.feed, sig.title, sig.url,
                  to_iso(sig.published_at) if sig.published_at else None, now_iso, now_iso,
-                 sig.lang, sig.text, metrics))
+                 sig.lang, sig.text, metrics, ",".join(sig.genres)))
             new.append((iid, sig))
         self.conn.commit()
         return new

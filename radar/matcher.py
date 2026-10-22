@@ -3,11 +3,25 @@ from __future__ import annotations
 
 import re
 import unicodedata
-from typing import Iterable
+from typing import Iterable, Sequence
 
 from radar.models import Topic
 
 _DEVANAGARI = re.compile(r"[ऀ-ॿ]")
+
+
+def genre_ok(topic_genres: Sequence[str], source_genres: Sequence[str], finance: frozenset[str]) -> bool:
+    """May a story from a source with these genres count for a topic with those genres?
+
+    Trend and market sources have no genre and may count for any topic. Otherwise the topic must share a genre with
+    the source, and a source with any finance genre reaches every finance genre ("gold medal" from a sports search
+    must not heat gold_price, but any finance feed may heat any finance topic)."""
+    if not source_genres:
+        return True
+    reach = set(source_genres)
+    if not finance.isdisjoint(reach):
+        reach |= finance
+    return not reach.isdisjoint(topic_genres)
 
 
 def _case_sensitive(keyword: str) -> bool:

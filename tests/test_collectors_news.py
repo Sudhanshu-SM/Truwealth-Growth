@@ -41,7 +41,12 @@ def test_indian_source_rules():
     assert not google_news.indian_source("https://www.fool.com", allowed)
 
 
-def test_google_news_collect_runs_every_query_for_the_last_hour():
+def test_google_news_items_carry_their_query_genres():
+    got = google_news.parse(fixture_bytes("google_news.xml"), "en", frozenset(), ("cricket",))
+    assert got and all(s.genres == ("cricket",) for s in got)
+
+
+def test_google_news_uses_each_querys_window():
     seen = []
 
     def handler(request):
@@ -52,9 +57,12 @@ def test_google_news_collect_runs_every_query_for_the_last_hour():
     sigs = google_news.collect(ctx)
     queries = ctx.config.sources["google_news"]["queries"]
     assert len(seen) == len(queries)
-    assert all(u.params["q"].endswith(" when:1h") for u in seen)
     assert len([u for u in seen if u.params["hl"] == "hi"]) == 2
     assert len(sigs) == 2 * len(queries)
+    sent = dict(u.params["q"].rsplit(" ", 1) for u in seen)      # query text -> the window it was sent with
+    finance = ctx.config.finance_genres
+    assert all(sent[q["q"]] == ("when:1h" if finance & set(q["genres"]) else "when:1d") for q in queries)
+    assert {s.genres for s in sigs} == {tuple(q["genres"]) for q in queries}
 
 
 def test_news_feeds_parse():
@@ -62,6 +70,17 @@ def test_news_feeds_parse():
     assert [s.feed for s in sigs] == ["et_markets", "et_markets"]
     assert sigs[0].text.startswith("J Infratech Ltd")
     assert sigs[1].published_at == datetime(2026, 9, 26, 12, 27, 36, tzinfo=timezone.utc)
+
+
+def test_feed_items_carry_their_feed_genres():
+    got = news_feeds.parse(fixture_bytes("news_feed.xml"), "et_markets", ("stock_market",))
+    assert got and all(s.genres == ("stock_market",) for s in got)
+
+
+def test_news_feeds_collect_gives_each_feed_its_genres():
+    ctx = make_ctx(lambda request: httpx.Response(200, content=fixture_bytes("news_feed.xml")))
+    sigs = news_feeds.collect(ctx)
+    assert {s.feed: s.genres for s in sigs} == {f["id"]: tuple(f["genres"]) for f in ctx.config.sources["news_feeds"]}
 
 
 def test_news_feeds_collect_survives_failing_feeds():
@@ -77,3 +96,11 @@ def test_regulators_keep_today_and_yesterday_only():
     sigs = regulators.parse(fixture_bytes("sebi.xml"), "sebi", NOW)
     assert [s.title for s in sigs] == ["Key decisions taken in the SEBI Board Meeting dated 24th September, 2026"]
     assert (sigs[0].source_type, sigs[0].feed) == ("regulator", "sebi")
+
+
+def test_regulator_items_carry_their_feed_genres():
+    got = regulators.parse(fixture_bytes("sebi.xml"), "sebi", NOW, ("stock_market",))
+    assert got and all(s.genres == ("stock_market",) for s in got)
+    ctx = make_ctx(lambda request: httpx.Response(200, content=fixture_bytes("sebi.xml")))
+    assert {s.feed: s.genres for s in regulators.collect(ctx)} == {
+        f["id"]: tuple(f["genres"]) for f in ctx.config.sources["regulators"]}

@@ -1,6 +1,8 @@
 from radar.config import load_config
-from radar.matcher import Matcher
+from radar.matcher import Matcher, genre_ok
 from radar.models import Topic
+
+FIN = frozenset({"personal_finance", "stock_market", "economy", "wealth", "crypto"})
 
 
 def topic(topic_id, *keywords):
@@ -40,3 +42,10 @@ def test_real_topics_route_typical_headlines():
     assert "ipo_buzz" in m.match("J Infratech files IPO papers; eyes Rs 600 cr")
     assert "upi_payments" in m.match("नए UPI MDR नियम 15 अक्टूबर से लागू होंगे")
     assert m.match("Bangkok declares flood disaster in all 50 districts") == []
+
+
+def test_genre_ok_keeps_stories_inside_their_source_genres():
+    assert not genre_ok(("personal_finance", "economy"), ("sports",), FIN)     # "gold medal" from a sports search
+    assert genre_ok(("economy",), ("stock_market",), FIN)                      # any finance source, any finance topic
+    assert genre_ok(("stock_market", "business"), ("business",), FIN)          # a shared genre
+    assert genre_ok(("cricket", "sports"), (), FIN)                            # trends and markets carry no genre

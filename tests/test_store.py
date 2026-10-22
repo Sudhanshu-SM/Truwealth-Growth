@@ -1,9 +1,36 @@
+import sqlite3
 from datetime import timedelta
 
 from helpers import NOW
 
 from radar.models import Signal
 from radar.store import Store, item_id
+
+# The items and emerging_topics tables as a database restored from the Actions cache has them, before genres.
+OLD_ITEMS_AND_EMERGING_SCHEMA = """
+CREATE TABLE items (
+    id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    feed TEXT NOT NULL,
+    title TEXT NOT NULL,
+    url TEXT,
+    published_at TEXT,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    lang TEXT NOT NULL DEFAULT 'en',
+    text TEXT NOT NULL DEFAULT '',
+    metrics_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE emerging_topics (
+    topic_id TEXT PRIMARY KEY,
+    phrase TEXT NOT NULL,
+    name TEXT NOT NULL,
+    bucket TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL
+);
+"""
 
 
 def sig(title="Nifty hits record", source_type="news", **kw):
@@ -72,3 +99,24 @@ def test_corrupt_database_is_replaced(tmp_path):
     st = Store(path)
     assert st.conn.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 0
     assert (tmp_path / "r.db.corrupt").exists()
+
+
+def test_old_database_gains_genre_columns(tmp_path):
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    with old:      # the items and emerging_topics tables as they were before genres
+        old.executescript(OLD_ITEMS_AND_EMERGING_SCHEMA)
+        old.execute("INSERT INTO items (id, source, source_type, feed, title, first_seen_at, last_seen_at) "
+                    "VALUES ('i1', 's', 'news', 'f', 'Old', 'x', 'x')")
+    old.close()
+    st = Store(path)
+    cols = {r["name"] for r in st.conn.execute("PRAGMA table_info(items)")}
+    assert "genres" in cols and "genres" in {r["name"] for r in st.conn.execute("PRAGMA table_info(emerging_topics)")}
+    assert tuple(st.conn.execute("SELECT title, genres FROM items").fetchone()) == ("Old", "")
+
+
+def test_items_keep_their_genres(tmp_path):
+    st = Store(tmp_path / "r.db")
+    st.add_items([Signal(source="google_news", source_type="news", feed="gn:x", title="IPL auction",
+                         url=None, published_at=NOW, genres=("cricket", "sports"))], NOW)
+    assert st.conn.execute("SELECT genres FROM items").fetchone()[0] == "cricket,sports"

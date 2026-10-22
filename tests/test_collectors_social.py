@@ -58,6 +58,11 @@ def test_reddit_parse_keeps_rising_rank():
     assert (sigs[0].feed, sigs[0].key) == ("r/IndiaInvestments", "t3_1abcde")
 
 
+def test_reddit_items_carry_their_genres():
+    got = reddit.parse(fixture_bytes("reddit_rising.xml"), "IndiaInvestments", ("personal_finance",))
+    assert got and all(s.genres == ("personal_finance",) for s in got)
+
+
 def test_reddit_stops_after_429(monkeypatch):
     monkeypatch.setattr(reddit.time, "sleep", lambda seconds: None)
     calls = []
@@ -92,4 +97,7 @@ def test_reddit_keeps_partial_results(monkeypatch):
             return httpx.Response(403)
         return httpx.Response(200, content=fixture_bytes("reddit_rising.xml"))
 
-    assert len(reddit.collect(make_ctx(handler))) == 2 * 7  # 8 subreddits, one forbidden
+    ctx = make_ctx(handler)
+    sigs = reddit.collect(ctx)
+    assert len(sigs) == 2 * 7  # 8 subreddits, one forbidden
+    assert {s.genres for s in sigs} == {tuple(ctx.config.sources["reddit"]["genres"])}

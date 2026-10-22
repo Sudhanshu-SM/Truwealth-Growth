@@ -80,8 +80,9 @@ def test_non_finance_trend_phrase_is_ignored(tmp_path):
 
 def test_link_emerging_tags_new_items_and_expiry(tmp_path):
     st = Store(tmp_path / "r.db")
-    st.conn.execute("INSERT INTO emerging_topics VALUES ('emerging:zeta-bank-collapse', 'zeta bank collapse', "
-                    "'Zeta Bank collapse', 'markets', ?, ?)", (to_iso(NOW), to_iso(NOW)))
+    st.conn.execute("INSERT INTO emerging_topics (topic_id, phrase, name, bucket, created_at, last_seen_at) "
+                    "VALUES ('emerging:zeta-bank-collapse', 'zeta bank collapse', 'Zeta Bank collapse', 'markets', "
+                    "?, ?)", (to_iso(NOW), to_iso(NOW)))
     topics = active_emerging(st.conn, NOW, 48)
     new = st.add_items([news("Depositors queue after Zeta Bank collapse", "et")], NOW)
     link_emerging(st.conn, new, topics, NOW)
