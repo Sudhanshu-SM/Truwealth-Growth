@@ -9,15 +9,14 @@ from datetime import datetime, timedelta
 from typing import Iterable
 
 from radar.config import EMERGING_ANGLES, Config
+from radar.matcher import genre_ok
 from radar.models import Signal, Topic
 from radar.text import normalize_title, slugify
 from radar.timeutil import ist, ist_hour_bucket, to_iso
 
 TOKEN_RE = re.compile(r"[\wऀ-ॿ]+(?:&[\wऀ-ॿ]+)*|[^\w\sऀ-ॿ]")
 WORD_RE = re.compile(r"[\wऀ-ॿ]")
-VOCAB_RE = re.compile(r"[\wऀ-ॿ]+")
 TREND_TYPES = ("search_trend", "x_trend")
-FINANCE_ONLY_TYPES = ("news", "video", "forum", "regulator")
 
 
 @dataclass
@@ -71,8 +70,27 @@ def record_counts(conn: sqlite3.Connection, new_items: list[tuple[str, Signal]],
         [(hour, phrase, n) for (hour, phrase), n in counts.items()])
 
 
-def _has_vocab(title: str, text: str, vocab: frozenset[str]) -> bool:
-    return "₹" in title or not vocab.isdisjoint(VOCAB_RE.findall(f"{title} {text}".lower()))
+def _split(genres: str) -> tuple[str, ...]:
+    """The genre ids in a comma-joined `genres` column (an item restored from an old cache has none)."""
+    return tuple(g for g in genres.split(",") if g)
+
+
+def common_genres(counts: Counter[str], n_items: int, share: float) -> tuple[str, ...]:
+    """The genres at least `share` of a phrase's items have, most common first and at most three; if none reaches the
+    share, just the most common one."""
+    ranked = counts.most_common()
+    common = [g for g, n in ranked if n >= share * n_items][:3]
+    return tuple(common or [g for g, _ in ranked[:1]])
+
+
+def _item_genres(row: sqlite3.Row, topics: dict[str, Topic]) -> list[str]:
+    """An item's genres: its source's, then those of the static topics it matched. Items restored from an old cache
+    have only the latter."""
+    genres = list(_split(row["genres"]))
+    for topic_id in sorted((row["topics"] or "").split(",")):
+        if topic_id in topics:
+            genres += topics[topic_id].genres
+    return list(dict.fromkeys(genres))
 
 
 def _baselines(conn: sqlite3.Connection, phrases: list[str], now: datetime, floor: float) -> dict[str, float]:
@@ -116,8 +134,9 @@ def _subsume(cands: dict[str, set[str]], share: float) -> dict[str, set[str]]:
     return {ph: cands[ph] for ph in alive}
 
 
-def _map_topic(conn: sqlite3.Connection, ids: set[str], topics: dict[str, Topic], share: float) -> tuple[str | None, str]:
-    """Static topic the phrase belongs to (or None) and the bucket to use."""
+def _map_topic(conn: sqlite3.Connection, ids: set[str], topics: dict[str, Topic],
+               share: float) -> tuple[str | None, str | None]:
+    """Static topic the phrase belongs to (or None) and the bucket to use (None if no item matched a static topic)."""
     marks = ",".join("?" * len(ids))
     rows = conn.execute(
         f"SELECT item_id, topic_id FROM item_topics WHERE item_id IN ({marks}) AND topic_id NOT LIKE 'emerging:%' "
@@ -128,7 +147,7 @@ def _map_topic(conn: sqlite3.Connection, ids: set[str], topics: dict[str, Topic]
         if n >= share * len(ids) and topic_id in topics:
             return topic_id, topics[topic_id].bucket
     buckets = Counter(topics[r["topic_id"]].bucket for r in rows if r["topic_id"] in topics)
-    return None, buckets.most_common(1)[0][0] if buckets else "markets"
+    return None, buckets.most_common(1)[0][0] if buckets else None
 
 
 def _display_name(phrase: str, titles: Iterable[str]) -> str:
@@ -143,11 +162,14 @@ def detect(conn: sqlite3.Connection, cfg: Config, new_items: list[tuple[str, Sig
     """Count this run's phrases, then report phrases spiking over the last 2 hours."""
     p, stop, block = _settings(cfg)
     record_counts(conn, new_items, now, cfg)
+    # Each item with the genres of its source and the ids of the static topics it matched.
     rows = conn.execute(
-        "SELECT id, source_type, feed, title, text FROM items "
+        "SELECT id, source_type, feed, title, genres, (SELECT group_concat(topic_id) FROM item_topics "
+        "WHERE item_id = items.id AND topic_id NOT LIKE 'emerging:%') AS topics FROM items "
         "WHERE COALESCE(published_at, first_seen_at) >= ? AND source_type != 'market'",
         (to_iso(now - timedelta(hours=2)),)).fetchall()
     info = {r["id"]: r for r in rows}
+    item_genres = {r["id"]: _item_genres(r, cfg.topic_map) for r in rows}
     phrase_items: dict[str, set[str]] = defaultdict(set)
     for r in rows:
         for phrase in extract(r["title"], r["source_type"], stop, block, p["min_chars"]):
@@ -161,9 +183,8 @@ def detect(conn: sqlite3.Connection, cfg: Config, new_items: list[tuple[str, Sig
         feeds = len({info[i]["feed"] for i in ids})
         if ratio < p["min_ratio"] or feeds < p["min_feeds"]:
             continue
-        finance_src = sum(info[i]["source_type"] in FINANCE_ONLY_TYPES for i in ids) / len(ids)
-        finance_words = sum(_has_vocab(info[i]["title"], info[i]["text"], cfg.finance_vocab) for i in ids) / len(ids)
-        if max(finance_src, finance_words) < p["finance_share"]:
+        # A phrase needs a genre on `genre_share` of its items; one that only trends mention has none, so no topic.
+        if sum(bool(item_genres[i]) for i in ids) / len(ids) < p["genre_share"]:
             continue
         kept[ph] = ids
         stats[ph] = (round(ratio, 1), feeds)
@@ -174,12 +195,27 @@ def detect(conn: sqlite3.Connection, cfg: Config, new_items: list[tuple[str, Sig
         if topic_id is None:
             topic_id = "emerging:" + slugify(ph)
             name = _display_name(ph, (info[i]["title"] for i in sorted(ids)))
+            counts = Counter(g for i in sorted(ids) for g in item_genres[i])
+            top_finance = max((n for g, n in counts.items() if g in cfg.finance_genres), default=0)
+            top_other = max((n for g, n in counts.items() if g not in cfg.finance_genres), default=0)
+            if top_finance and top_finance <= top_other:
+                # Finance genres stay only when they outnumber every other genre on the story's items. On a tie, or
+                # when another genre has more, a finance outlet covering a film does not make it a finance story: any
+                # finance genre would send it to the Sheet and the HOT emails (see Config.is_finance). A finance genre
+                # that stays leads, as config.py asks of a static topic.
+                counts = Counter({g: n for g, n in counts.items() if g not in cfg.finance_genres})
+            genres = common_genres(counts, len(ids), p["genre_common_share"])
             conn.execute(
-                "INSERT INTO emerging_topics (topic_id, phrase, name, bucket, created_at, last_seen_at) "
-                "VALUES (?, ?, ?, ?, ?, ?) ON CONFLICT(topic_id) DO UPDATE SET last_seen_at = excluded.last_seen_at",
-                (topic_id, ph, name, bucket, to_iso(now), to_iso(now)))
+                "INSERT INTO emerging_topics (topic_id, phrase, name, bucket, genres, created_at, last_seen_at) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(topic_id) DO UPDATE SET last_seen_at = excluded.last_seen_at",
+                (topic_id, ph, name, bucket or genres[0], ",".join(genres), to_iso(now), to_iso(now)))
+            # Like link_emerging, link only the items that share a genre with the topic as stored: for a topic found
+            # earlier that is not necessarily the `genres` just computed.
+            row = conn.execute("SELECT genres FROM emerging_topics WHERE topic_id = ?", (topic_id,)).fetchone()
+            stored = _split(row["genres"])
             conn.executemany("INSERT OR IGNORE INTO item_topics (item_id, topic_id) VALUES (?, ?)",
-                             [(i, topic_id) for i in sorted(ids)])
+                             [(i, topic_id) for i in sorted(ids)
+                              if genre_ok(stored, _split(info[i]["genres"]), cfg.finance_genres)])
         spikes.append(PhraseSpike(ph, set(ids), stats[ph][0], stats[ph][1], topic_id, emerging))
     conn.commit()
     return spikes
@@ -189,17 +225,19 @@ def active_emerging(conn: sqlite3.Connection, now: datetime, ttl_hours: float) -
     """Drop expired emerging topics and return the live ones as Topic objects."""
     conn.execute("DELETE FROM emerging_topics WHERE last_seen_at < ?", (to_iso(now - timedelta(hours=ttl_hours)),))
     conn.commit()
+    rows = conn.execute("SELECT topic_id, phrase, name, bucket, genres FROM emerging_topics ORDER BY topic_id")
     return [Topic(id=r["topic_id"], name=r["name"], bucket=r["bucket"], keywords=(r["phrase"],),
-                  angles=EMERGING_ANGLES, emerging=True)
-            for r in conn.execute("SELECT topic_id, phrase, name, bucket FROM emerging_topics ORDER BY topic_id")]
+                  angles=EMERGING_ANGLES, emerging=True, genres=_split(r["genres"])) for r in rows]
 
 
-def link_emerging(conn: sqlite3.Connection, new_items: list[tuple[str, Signal]], topics: list[Topic], now: datetime) -> None:
-    """Tag new items whose title contains a live emerging phrase, and keep that topic alive."""
+def link_emerging(conn: sqlite3.Connection, cfg: Config, new_items: list[tuple[str, Signal]], topics: list[Topic],
+                  now: datetime) -> None:
+    """Tag new items whose title contains a live emerging phrase, and keep that topic alive. As for static topics, a
+    story whose source has genres counts only for a topic it shares one with (see genre_ok)."""
     for item_id, sig in new_items:
         title = normalize_title(sig.title)
         for topic in topics:
-            if topic.keywords[0] in title:
+            if topic.keywords[0] in title and genre_ok(topic.genres, sig.genres, cfg.finance_genres):
                 conn.execute("INSERT OR IGNORE INTO item_topics (item_id, topic_id) VALUES (?, ?)", (item_id, topic.id))
                 conn.execute("UPDATE emerging_topics SET last_seen_at = ? WHERE topic_id = ?", (to_iso(now), topic.id))
     conn.commit()

@@ -7,6 +7,7 @@ from __future__ import annotations
 import json
 import logging
 import sqlite3
+from dataclasses import replace
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Iterable
@@ -113,6 +114,12 @@ CREATE TABLE IF NOT EXISTS kv (
 );
 """
 
+# Every emerging topic from before genres passed the finance gate, so each gets a finance genre from its bucket (the
+# Supabase migration maps radar_topics rows the same way).
+EMERGING_GENRES_FROM_BUCKET = (
+    "UPDATE emerging_topics SET genres = CASE bucket WHEN 'personal_finance' THEN 'personal_finance' "
+    "WHEN 'markets' THEN 'economy' WHEN 'wealth' THEN 'wealth' WHEN 'trading' THEN 'stock_market' ELSE 'economy' END")
+
 
 def item_id(sig: Signal) -> str:
     """Stable id per item (spec section 6, item identity)."""
@@ -142,21 +149,35 @@ class Store:
         self.conn = sqlite3.connect(str(self.path))
         self.conn.row_factory = sqlite3.Row
         self.conn.executescript(SCHEMA)
+        # `genres` is added here rather than in SCHEMA, so a new database and one restored from the Actions cache
+        # (written before genres existed) end up the same. The old emerging topics are backfilled in the same
+        # transaction as their new column, so a crash cannot leave them without genres for good.
+        for table in ("items", "emerging_topics"):
+            if "genres" not in {r["name"] for r in self.conn.execute(f"PRAGMA table_info({table})")}:
+                self.conn.execute("BEGIN")
+                self.conn.execute(f"ALTER TABLE {table} ADD COLUMN genres TEXT NOT NULL DEFAULT ''")
+                if table == "emerging_topics":
+                    self.conn.execute(EMERGING_GENRES_FROM_BUCKET)
+                self.conn.commit()
 
     def close(self) -> None:
         self.conn.commit()
         self.conn.close()
 
     def add_items(self, signals: Iterable[Signal], now: datetime) -> list[tuple[str, Signal]]:
-        """Insert unseen items; refresh title, metrics and last_seen_at of known ones. Returns the new ones."""
+        """Insert unseen items; refresh title, metrics and last_seen_at of known ones. Returns the new ones.
+
+        Signals with the same id (one headline found by several searches) are one item with all of their genres, in
+        first-seen order. A row already stored keeps the genres it has."""
         now_iso = to_iso(now)
         new: list[tuple[str, Signal]] = []
-        seen: set[str] = set()
+        unique: dict[str, Signal] = {}
         for sig in signals:
             iid = item_id(sig)
-            if iid in seen:
-                continue
-            seen.add(iid)
+            if iid in unique:
+                sig = replace(unique[iid], genres=tuple(dict.fromkeys(unique[iid].genres + sig.genres)))
+            unique[iid] = sig
+        for iid, sig in unique.items():
             metrics = json.dumps(sig.metrics, sort_keys=True)
             updated = self.conn.execute(
                 "UPDATE items SET title = ?, metrics_json = ?, last_seen_at = ? WHERE id = ?",
@@ -165,10 +186,10 @@ class Store:
                 continue
             self.conn.execute(
                 "INSERT INTO items (id, source, source_type, feed, title, url, published_at, first_seen_at, "
-                "last_seen_at, lang, text, metrics_json) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                "last_seen_at, lang, text, metrics_json, genres) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
                 (iid, sig.source, sig.source_type, sig.feed, sig.title, sig.url,
                  to_iso(sig.published_at) if sig.published_at else None, now_iso, now_iso,
-                 sig.lang, sig.text, metrics))
+                 sig.lang, sig.text, metrics, ",".join(sig.genres)))
             new.append((iid, sig))
         self.conn.commit()
         return new

@@ -1,6 +1,8 @@
 from radar.config import load_config
-from radar.matcher import Matcher
+from radar.matcher import Matcher, genre_ok
 from radar.models import Topic
+
+FIN = frozenset({"personal_finance", "stock_market", "economy", "wealth", "crypto"})
 
 
 def topic(topic_id, *keywords):
@@ -40,3 +42,22 @@ def test_real_topics_route_typical_headlines():
     assert "ipo_buzz" in m.match("J Infratech files IPO papers; eyes Rs 600 cr")
     assert "upi_payments" in m.match("नए UPI MDR नियम 15 अक्टूबर से लागू होंगे")
     assert m.match("Bangkok declares flood disaster in all 50 districts") == []
+
+
+def test_ambiguous_words_route_a_story_only_with_a_qualifier():
+    m = Matcher(load_config().topics)
+    guarded = {"temples_pilgrimages", "government_jobs", "car_launches"}
+    for title in ("Darshan Raval's new single tops the charts",                 # a singer, not a temple visit
+                  "NEET MBBS round 2 leaves 1,200 seat vacancies",              # a seat allotment, not a government job
+                  "SUV rams into a divider on the expressway, 3 injured"):      # a crash, not a launch
+        assert not guarded & set(m.match(title)), title
+    assert "temples_pilgrimages" in m.match("VIP darshan tickets released for the weekend")
+    assert "government_jobs" in m.match("Railways announces job vacancies for 5,000 posts")
+    assert "car_launches" in m.match("Mahindra unveils new SUV for the festive season")
+
+
+def test_genre_ok_keeps_stories_inside_their_source_genres():
+    assert not genre_ok(("personal_finance", "economy"), ("sports",), FIN)     # "gold medal" from a sports search
+    assert genre_ok(("economy",), ("stock_market",), FIN)                      # any finance source, any finance topic
+    assert genre_ok(("stock_market", "business"), ("business",), FIN)          # a shared genre
+    assert genre_ok(("cricket", "sports"), (), FIN)                            # trends and markets carry no genre

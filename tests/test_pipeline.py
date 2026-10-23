@@ -72,6 +72,27 @@ def test_second_run_respects_cooldown(tmp_path):
     assert st.conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 1
 
 
+def test_sports_story_never_matches_a_finance_topic(tmp_path):
+    def search(ctx):
+        def item(title, genres):
+            return Signal(source="google_news", source_type="news", feed="gn:x", title=title, url=None,
+                          published_at=ctx.now - timedelta(minutes=5), genres=genres)
+
+        return [item("Gold medal haul lifts India at Asian Games", ("sports",)),
+                item("Gold rate today: yellow metal hits record high", ("economy",))]
+
+    st = Store(tmp_path / "r.db")
+    run_once(st, tmp_path / "out", collectors={"google_news": search})
+
+    def topics_of(title):
+        return {r["topic_id"] for r in st.conn.execute(
+            "SELECT topic_id FROM item_topics JOIN items ON id = item_id WHERE title = ?", (title,))}
+
+    assert "gold_price" in topics_of("Gold rate today: yellow metal hits record high")    # finance still heats it
+    sports = topics_of("Gold medal haul lifts India at Asian Games")
+    assert "olympics_athletics" in sports and "gold_price" not in sports
+
+
 def test_run_exits_1_when_every_collector_fails(tmp_path):
     def broken(ctx):
         raise RuntimeError("down")

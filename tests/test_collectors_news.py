@@ -41,18 +41,28 @@ def test_indian_source_rules():
     assert not google_news.indian_source("https://www.fool.com", allowed)
 
 
-def test_google_news_collect_runs_every_query_for_the_last_hour():
+def test_google_news_items_carry_their_query_genres():
+    got = google_news.parse(fixture_bytes("google_news.xml"), "en", frozenset(), ("cricket",))
+    assert got and all(s.genres == ("cricket",) for s in got)
+
+
+def test_google_news_uses_each_querys_window():
     seen = []
 
     def handler(request):
         seen.append(request.url)
         return httpx.Response(200, content=fixture_bytes("google_news.xml"))
 
-    sigs = google_news.collect(make_ctx(handler))
-    assert len(seen) == 11
-    assert all(u.params["q"].endswith(" when:1h") for u in seen)
+    ctx = make_ctx(handler)
+    sigs = google_news.collect(ctx)
+    queries = ctx.config.sources["google_news"]["queries"]
+    assert len(seen) == len(queries)
     assert len([u for u in seen if u.params["hl"] == "hi"]) == 2
-    assert len(sigs) == 22
+    assert len(sigs) == 2 * len(queries)
+    sent = dict(u.params["q"].rsplit(" ", 1) for u in seen)      # query text -> the window it was sent with
+    finance = ctx.config.finance_genres
+    assert all(sent[q["q"]] == ("when:1h" if finance & set(q["genres"]) else "when:1d") for q in queries)
+    assert {s.genres for s in sigs} == {tuple(q["genres"]) for q in queries}
 
 
 def test_news_feeds_parse():
@@ -60,6 +70,17 @@ def test_news_feeds_parse():
     assert [s.feed for s in sigs] == ["et_markets", "et_markets"]
     assert sigs[0].text.startswith("J Infratech Ltd")
     assert sigs[1].published_at == datetime(2026, 9, 26, 12, 27, 36, tzinfo=timezone.utc)
+
+
+def test_feed_items_carry_their_feed_genres():
+    got = news_feeds.parse(fixture_bytes("news_feed.xml"), "et_markets", ("stock_market",))
+    assert got and all(s.genres == ("stock_market",) for s in got)
+
+
+def test_news_feeds_collect_gives_each_feed_its_genres():
+    ctx = make_ctx(lambda request: httpx.Response(200, content=fixture_bytes("news_feed.xml")))
+    sigs = news_feeds.collect(ctx)
+    assert {s.feed: s.genres for s in sigs} == {f["id"]: tuple(f["genres"]) for f in ctx.config.sources["news_feeds"]}
 
 
 def test_news_feeds_collect_survives_failing_feeds():
@@ -75,3 +96,26 @@ def test_regulators_keep_today_and_yesterday_only():
     sigs = regulators.parse(fixture_bytes("sebi.xml"), "sebi", NOW)
     assert [s.title for s in sigs] == ["Key decisions taken in the SEBI Board Meeting dated 24th September, 2026"]
     assert (sigs[0].source_type, sigs[0].feed) == ("regulator", "sebi")
+
+
+def test_regulator_items_carry_their_feed_genres():
+    got = regulators.parse(fixture_bytes("sebi.xml"), "sebi", NOW, ("stock_market",))
+    assert got and all(s.genres == ("stock_market",) for s in got)
+    ctx = make_ctx(lambda request: httpx.Response(200, content=fixture_bytes("sebi.xml")))
+    assert {s.feed: s.genres for s in regulators.collect(ctx)} == {
+        f["id"]: tuple(f["genres"]) for f in ctx.config.sources["regulators"]}
+
+
+def test_google_news_skips_us_sec_filings_but_keeps_indian_tax_forms():
+    # in.investing.com is on the allowlist and syndicates SEC filings, which then match genre searches by company name
+    items = [("Form 4 DLF Ltd For: 15 October - in.investing.com", "https://in.investing.com"),
+             ("Form 8-K Brigade Enterprises Ltd - in.investing.com", "https://in.investing.com"),
+             ("Form 16: what salaried taxpayers must check before filing ITR - Mint", "https://www.livemint.com"),
+             ("Sensex falls 800 points as FPIs sell - The Economic Times", "https://economictimes.indiatimes.com")]
+    xml = "".join(f'<item><title>{title}</title><link>https://news.google.com/rss/articles/{i}</link>'
+                  f'<pubDate>Sat, 26 Sep 2026 07:51:13 GMT</pubDate><source url="{url}">{title.rsplit(" - ", 1)[1]}'
+                  f'</source></item>' for i, (title, url) in enumerate(items))
+    raw = f'<?xml version="1.0"?><rss version="2.0"><channel>{xml}</channel></rss>'.encode()
+    sigs = google_news.parse(raw, "en", frozenset({"in.investing.com", "livemint.com"}))
+    assert [s.title for s in sigs] == ["Form 16: what salaried taxpayers must check before filing ITR",
+                                       "Sensex falls 800 points as FPIs sell"]      # "Form 16" is itr_filing's keyword

@@ -19,7 +19,7 @@ YT = "{http://www.youtube.com/xml/schemas/2015}"
 MEDIA = "{http://search.yahoo.com/mrss/}"
 
 
-def parse(raw: bytes, channel_id: str) -> list[Signal]:
+def parse(raw: bytes, channel_id: str, genres: tuple[str, ...] = ()) -> list[Signal]:
     out = []
     for e in ET.fromstring(raw).findall(f"{ATOM}entry"):
         video_id = e.findtext(f"{YT}videoId")
@@ -35,7 +35,7 @@ def parse(raw: bytes, channel_id: str) -> list[Signal]:
             text=clean(e.findtext(f"{MEDIA}group/{MEDIA}description"))[:300],
             metrics={"views": float(stats.get("views", 0)) if stats is not None else 0.0,
                      "is_short": 1.0 if "/shorts/" in url else 0.0},
-            key=video_id))
+            key=video_id, genres=genres))
     return out
 
 
@@ -46,7 +46,8 @@ def rotation(channels, run_index: int, groups: int) -> list[dict]:
 def collect(ctx: Context) -> list[Signal]:
     groups = ctx.config.settings["youtube"]["rotation_groups"]
     template = ctx.config.sources["youtube"]["rss_template"]
-    return gather([(c["id"], lambda c=c: parse(ctx.http.get(template.format(id=c["id"])).content, c["id"]))
+    genres = tuple(ctx.config.sources["youtube"]["genres"])
+    return gather([(c["id"], lambda c=c: parse(ctx.http.get(template.format(id=c["id"])).content, c["id"], genres))
                    for c in rotation(ctx.config.channels, ctx.run_index, groups)])
 
 

@@ -14,9 +14,10 @@ from radar.rss import parse_feed
 log = logging.getLogger(__name__)
 
 
-def parse(raw: bytes, sub: str) -> list[Signal]:
+def parse(raw: bytes, sub: str, genres: tuple[str, ...] = ()) -> list[Signal]:
     return [Signal(source="reddit", source_type="forum", feed=f"r/{sub}", title=e.title, url=e.link,
-                   published_at=e.published, text=e.summary[:500], metrics={"rising_rank": float(rank)}, key=e.guid)
+                   published_at=e.published, text=e.summary[:500], metrics={"rising_rank": float(rank)}, key=e.guid,
+                   genres=genres)
             for rank, e in enumerate(parse_feed(raw), start=1) if e.title]
 
 
@@ -24,6 +25,7 @@ def collect(ctx: Context) -> list[Signal]:
     cfg = ctx.config.sources["reddit"]
     spacing = ctx.config.settings["reddit"]["spacing_seconds"]
     subs = list(cfg["subreddits"])
+    genres = tuple(cfg["genres"])
     start = ctx.run_index % len(subs)
     out: list[Signal] = []
     failures = 0
@@ -31,7 +33,7 @@ def collect(ctx: Context) -> list[Signal]:
         if i:
             time.sleep(spacing)
         try:
-            out.extend(parse(ctx.http.get(cfg["url_template"].format(sub=sub)).content, sub))
+            out.extend(parse(ctx.http.get(cfg["url_template"].format(sub=sub)).content, sub, genres))
         except httpx.HTTPStatusError as exc:
             failures += 1
             if exc.response.status_code == 429:

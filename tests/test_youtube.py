@@ -15,6 +15,11 @@ def test_parse_detects_shorts_and_views():
     assert sigs[0].text == "Insurance stocks fell sharply today."
 
 
+def test_youtube_items_carry_their_channel_genres():
+    got = youtube.parse(fixture_bytes("youtube_channel.xml"), "UCtest", ("stock_market",))
+    assert got and all(s.genres == ("stock_market",) for s in got)
+
+
 def test_rotation_splits_channels_into_groups():
     chans = [{"id": str(i)} for i in range(7)]
     assert [c["id"] for c in youtube.rotation(chans, 0, 3)] == ["0", "3", "6"]
@@ -47,5 +52,6 @@ def test_collect_fetches_one_rotation_group():
         return httpx.Response(200, content=fixture_bytes("youtube_channel.xml"))
 
     cfg = load_config()
-    youtube.collect(make_ctx(handler, run_index=1, config=cfg))
+    sigs = youtube.collect(make_ctx(handler, run_index=1, config=cfg))
     assert len(urls) == len(youtube.rotation(cfg.channels, 1, 3)) == 30
+    assert {s.genres for s in sigs} == {tuple(cfg.sources["youtube"]["genres"])}

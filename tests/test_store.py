@@ -1,9 +1,36 @@
+import sqlite3
 from datetime import timedelta
 
 from helpers import NOW
 
 from radar.models import Signal
 from radar.store import Store, item_id
+
+# The items and emerging_topics tables as a database restored from the Actions cache has them, before genres.
+OLD_ITEMS_AND_EMERGING_SCHEMA = """
+CREATE TABLE items (
+    id TEXT PRIMARY KEY,
+    source TEXT NOT NULL,
+    source_type TEXT NOT NULL,
+    feed TEXT NOT NULL,
+    title TEXT NOT NULL,
+    url TEXT,
+    published_at TEXT,
+    first_seen_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    lang TEXT NOT NULL DEFAULT 'en',
+    text TEXT NOT NULL DEFAULT '',
+    metrics_json TEXT NOT NULL DEFAULT '{}'
+);
+CREATE TABLE emerging_topics (
+    topic_id TEXT PRIMARY KEY,
+    phrase TEXT NOT NULL,
+    name TEXT NOT NULL,
+    bucket TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL
+);
+"""
 
 
 def sig(title="Nifty hits record", source_type="news", **kw):
@@ -72,3 +99,68 @@ def test_corrupt_database_is_replaced(tmp_path):
     st = Store(path)
     assert st.conn.execute("SELECT COUNT(*) FROM items").fetchone()[0] == 0
     assert (tmp_path / "r.db.corrupt").exists()
+
+
+def test_old_database_gains_genre_columns(tmp_path):
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    with old:      # the items and emerging_topics tables as they were before genres
+        old.executescript(OLD_ITEMS_AND_EMERGING_SCHEMA)
+        old.execute("INSERT INTO items (id, source, source_type, feed, title, first_seen_at, last_seen_at) "
+                    "VALUES ('i1', 's', 'news', 'f', 'Old', 'x', 'x')")
+    old.close()
+    st = Store(path)
+    cols = {r["name"] for r in st.conn.execute("PRAGMA table_info(items)")}
+    assert "genres" in cols and "genres" in {r["name"] for r in st.conn.execute("PRAGMA table_info(emerging_topics)")}
+    assert tuple(st.conn.execute("SELECT title, genres FROM items").fetchone()) == ("Old", "")
+
+
+def test_old_emerging_topics_get_a_finance_genre_from_their_bucket(tmp_path):
+    path = tmp_path / "old.db"
+    old = sqlite3.connect(path)
+    with old:
+        old.executescript(OLD_ITEMS_AND_EMERGING_SCHEMA)
+        old.executemany("INSERT INTO emerging_topics (topic_id, phrase, name, bucket, created_at, last_seen_at) "
+                        "VALUES (?, ?, ?, ?, 'x', 'x')",
+                        [(f"emerging:{b}", b, b, b)
+                         for b in ("personal_finance", "markets", "wealth", "trading", "odd")])
+    old.close()
+
+    def genres_by_phrase(store):
+        return {r["phrase"]: r["genres"] for r in store.conn.execute("SELECT phrase, genres FROM emerging_topics")}
+
+    st = Store(path)
+    assert genres_by_phrase(st) == {"personal_finance": "personal_finance", "markets": "economy", "wealth": "wealth",
+                                    "trading": "stock_market", "odd": "economy"}
+    # a later run writes genres of its own, which opening the file again must not overwrite
+    st.conn.execute("UPDATE emerging_topics SET genres = 'cricket' WHERE phrase = 'markets'")
+    st.close()
+    again = genres_by_phrase(Store(path))
+    assert again["markets"] == "cricket" and again["wealth"] == "wealth"
+
+
+def test_items_keep_their_genres(tmp_path):
+    st = Store(tmp_path / "r.db")
+    st.add_items([Signal(source="google_news", source_type="news", feed="gn:x", title="IPL auction",
+                         url=None, published_at=NOW, genres=("cricket", "sports"))], NOW)
+    assert st.conn.execute("SELECT genres FROM items").fetchone()[0] == "cricket,sports"
+
+
+def test_same_headline_from_two_searches_keeps_both_genres(tmp_path):
+    st = Store(tmp_path / "r.db")
+    ((_, merged),) = st.add_items([sig(genres=("business",)), sig(genres=("stock_market",), feed="gn:et")], NOW)
+    assert merged.genres == ("business", "stock_market")
+    assert st.conn.execute("SELECT genres FROM items").fetchone()[0] == "business,stock_market"
+    # a row already stored is left as it is, whatever a later search says
+    assert st.add_items([sig(genres=("crypto",))], NOW + timedelta(minutes=15)) == []
+    assert st.conn.execute("SELECT genres FROM items").fetchone()[0] == "business,stock_market"
+
+
+def test_merged_genres_keep_first_seen_order_without_repeats(tmp_path):
+    st = Store(tmp_path / "r.db")
+    (_, merged), (_, other) = st.add_items([sig("Gold rallies", genres=("economy", "wealth")),
+                                            sig("Gold rallies", genres=("wealth", "crypto")),
+                                            sig("Oscar race", genres=("movies",))], NOW)
+    assert merged.genres == ("economy", "wealth", "crypto") and other.genres == ("movies",)
+    stored = st.conn.execute("SELECT genres FROM items WHERE title = 'Gold rallies'").fetchone()[0]
+    assert stored == "economy,wealth,crypto"

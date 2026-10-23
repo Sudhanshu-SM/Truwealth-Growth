@@ -7,12 +7,12 @@ from radar.rss import parse_feed
 from radar.timeutil import IST
 
 
-def parse(raw: bytes, feed_id: str) -> list[Signal]:
+def parse(raw: bytes, feed_id: str, genres: tuple[str, ...] = ()) -> list[Signal]:
     return [Signal(source="news_feeds", source_type="news", feed=feed_id, title=e.title, url=e.link,
-                   published_at=e.published, text=e.summary[:500])
+                   published_at=e.published, text=e.summary[:500], genres=genres)
             for e in parse_feed(raw, default_tz=IST) if e.title]
 
 
 def collect(ctx: Context) -> list[Signal]:
-    return gather([(f["id"], lambda f=f: parse(ctx.http.get(f["url"]).content, f["id"]))
+    return gather([(f["id"], lambda f=f: parse(ctx.http.get(f["url"]).content, f["id"], tuple(f["genres"])))
                    for f in ctx.config.sources["news_feeds"]])

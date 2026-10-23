@@ -4,7 +4,7 @@ from helpers import NOW
 
 from radar.config import load_config
 from radar.models import Signal, TopicScore
-from radar.scorer import (Episode, alert_kind, baseline, decide_alerts, next_episode, score_run, search_points,
+from radar.scorer import (Episode, alert_kind, baseline, decide_alerts, is_hot, next_episode, score_run, search_points,
                           stage_of, x_points, z_score)
 from radar.store import Store
 
@@ -79,6 +79,23 @@ def test_cooldown_blocks_repeat_unless_heat_doubles():
 def test_single_strong_bonus_can_alert_alone():
     assert alert_kind(TopicScore("t", 6.5, "Emerging", 1, bonuses={"x_trend": 4.0}), None, 0, NOW, S) == "hot"
     assert alert_kind(TopicScore("t", 6.5, "Emerging", 1, bonuses={"regulator": 2.0}), None, 0, NOW, S) is None
+
+
+def test_is_hot_is_the_alert_rule_without_cooldown_or_cap():
+    hot = S["scoring"]["hot_threshold"]
+    assert is_hot(TopicScore("t", hot, "Emerging", 2), S) is True  # two sources, right at the threshold
+    assert is_hot(TopicScore("t", hot + 3, "Peaking", 1), S) is False  # one source and no bonus
+    assert is_hot(TopicScore("t", hot + 3, "Peaking", 1, bonuses={"x_trend": 4.0}), S) is True  # a strong bonus will do
+    assert is_hot(TopicScore("t", hot + 3, "Peaking", 1, bonuses={"regulator": 2.0}), S) is False
+    assert is_hot(TopicScore("t", hot + 1, "Peaking", 3, prev_heat=hot + 2), S) is False  # heat falling
+    assert is_hot(TopicScore("t", hot - 0.1, "Emerging", 3), S) is False  # below the threshold
+    assert is_hot(TopicScore("t", hot + 3, "Fading", 3), S) is False
+    assert is_hot(TopicScore("t", hot + 3, "Quiet", 3), S) is False
+    # cooldown and the daily cap are alert_kind's business: the score is still hot, the alert is held back or capped
+    score = TopicScore("t", 8.0, "Peaking", 3, prev_heat=7.0)
+    assert is_hot(score, S) is True
+    assert alert_kind(score, (NOW - timedelta(hours=3), 7.0), 0, NOW, S) is None
+    assert alert_kind(score, None, S["alerts"]["daily_cap"], NOW, S) == "capped"
 
 
 def test_decide_alerts_caps_per_ist_day(tmp_path):

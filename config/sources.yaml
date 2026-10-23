@@ -1,4 +1,6 @@
-# Endpoints the collectors read. All free, no keys. Checked 2026-09-26.
+# Endpoints the collectors read. All free, no keys. Checked 2026-09-26 (the searches for the other genres: 2026-10-22).
+# Every entry that yields items names its genres (ids from genres.yaml, most relevant first), and its items inherit
+# them. Google and X trends name none: they only add heat to the topics they match.
 
 google_trends:
   url: "https://trends.google.com/trending/rss?geo=IN"
@@ -9,17 +11,81 @@ google_news:
   params_en: {hl: "en-IN", gl: "IN", ceid: "IN:en"}
   params_hi: {hl: "hi", gl: "IN", ceid: "IN:hi"}
   queries:
-    - {id: mf, lang: en, q: '"mutual fund" OR SIP OR NFO OR "index fund" OR ELSS'}
-    - {id: tax, lang: en, q: '"income tax" OR ITR OR "tax regime" OR "capital gains" OR TDS OR GST'}
-    - {id: loans, lang: en, q: '"home loan" OR EMI OR "credit card" OR CIBIL OR "fixed deposit" OR insurance'}
-    - {id: retire, lang: en, q: 'EPFO OR NPS OR PPF OR pension OR retirement OR UPI'}
-    - {id: market, lang: en, q: 'Sensex OR Nifty OR "stock market" OR "Dalal Street"'}
-    - {id: macro, lang: en, q: 'RBI OR "repo rate" OR inflation OR rupee OR "gold price" OR "crude oil"'}
-    - {id: trading, lang: en, q: 'IPO OR GMP OR "F&O" OR SEBI OR multibagger'}
-    - {id: wealth, lang: en, q: 'PMS OR AIF OR NRI OR "estate planning" OR "family office" OR REIT'}
-    - {id: moneycontrol, lang: en, q: 'site:moneycontrol.com'}
-    - {id: hi_market, lang: hi, q: 'शेयर बाजार OR सेंसेक्स OR निफ्टी OR आईपीओ'}
-    - {id: hi_money, lang: hi, q: 'म्यूचुअल फंड OR आयकर OR आरबीआई OR सोना'}
+    # Finance searches use the block's one-hour window.
+    - {id: mf, lang: en, q: '"mutual fund" OR SIP OR NFO OR "index fund" OR ELSS', genres: [personal_finance]}
+    - {id: tax, lang: en, q: '"income tax" OR ITR OR "tax regime" OR "capital gains" OR TDS OR GST', genres: [personal_finance]}
+    - {id: loans, lang: en, q: '"home loan" OR EMI OR "credit card" OR CIBIL OR "fixed deposit" OR insurance', genres: [personal_finance]}
+    - {id: retire, lang: en, q: 'EPFO OR NPS OR PPF OR pension OR retirement OR UPI', genres: [personal_finance]}
+    - {id: market, lang: en, q: 'Sensex OR Nifty OR "stock market" OR "Dalal Street"', genres: [stock_market]}
+    - {id: macro, lang: en, q: 'RBI OR "repo rate" OR inflation OR rupee OR "gold price" OR "crude oil"', genres: [economy]}
+    - {id: trading, lang: en, q: 'IPO OR GMP OR "F&O" OR SEBI OR multibagger', genres: [stock_market]}
+    - {id: wealth, lang: en, q: 'PMS OR AIF OR NRI OR "estate planning" OR "family office" OR REIT', genres: [wealth]}
+    - {id: moneycontrol, lang: en, q: 'site:moneycontrol.com', genres: [stock_market]}
+    - {id: hi_market, lang: hi, q: 'शेयर बाजार OR सेंसेक्स OR निफ्टी OR आईपीओ', genres: [stock_market]}
+    - {id: hi_money, lang: hi, q: 'म्यूचुअल फंड OR आयकर OR आरबीआई OR सोना', genres: [personal_finance, economy]}
+    # The other genres look back a day (their own `window`), because the radar runs only a few times a day.
+    # Money & work
+    - {id: real_estate, lang: en, genres: [real_estate], window: "when:1d",
+       q: '"real estate" OR "property market" OR Anarock OR "luxury homes" OR "rental market" OR "land prices" OR "affordable housing" OR PMAY'}
+    - {id: business, lang: en, genres: [business], window: "when:1d",
+       q: 'startup OR "funding round" OR "Series B" OR acquires OR takeover OR "quick commerce" OR "e-commerce" OR D2C'}
+    - {id: careers, lang: en, genres: [careers], window: "when:1d",
+       q: 'layoffs OR hiring OR "job market" OR "work from home" OR "campus placements" OR "work-life balance" OR "sarkari naukri" OR "job cuts"'}
+    - {id: marketing, lang: en, genres: [marketing], window: "when:1d",
+       q: '"creator economy" OR influencer OR "brand campaign" OR "ad campaign" OR "Instagram Reels" OR YouTuber OR "social media marketing" OR "brand ambassador"'}
+    # Tech & science
+    - {id: technology, lang: en, genres: [technology], window: "when:1d",
+       q: 'smartphone OR iPhone OR Samsung OR OnePlus OR "phone launch" OR gadgets OR "Windows 11" OR "software update"'}
+    - {id: technology_2, lang: en, genres: [technology], window: "when:1d",
+       q: '"data breach" OR WhatsApp OR 5G OR semiconductor OR cybersecurity OR "recharge plans" OR "satellite internet" OR "cyber attack"'}
+    - {id: ai, lang: en, genres: [ai], window: "when:1d",
+       q: 'ChatGPT OR OpenAI OR "artificial intelligence" OR DeepSeek OR "AI chatbot" OR "AI tools" OR deepfake OR "AI regulation"'}
+    - {id: science, lang: en, genres: [science], window: "when:1d",
+       q: 'ISRO OR Gaganyaan OR Chandrayaan OR "Shubhanshu Shukla" OR NASA OR astronaut OR "solar eclipse" OR "black hole" OR "Nobel Prize" OR comet'}
+    # Sports
+    - {id: cricket, lang: en, genres: [cricket], window: "when:1d",
+       q: 'cricket OR IPL OR BCCI OR "Team India" OR "Test series" OR "T20 World Cup"'}
+    - {id: cricket_2, lang: en, genres: [cricket], window: "when:1d",
+       q: 'Kohli OR "Rohit Sharma" OR Bumrah OR Dhoni OR "Shubman Gill" OR "Smriti Mandhana" OR "Ranji Trophy" OR "Big Bash"'}
+    - {id: football, lang: en, genres: [football], window: "when:1d",
+       q: 'football news India OR "Premier League" OR "Champions League" OR "La Liga" OR Messi OR Ronaldo OR ISL OR "Sunil Chhetri"'}
+    - {id: sports, lang: en, genres: [sports], window: "when:1d",
+       q: 'Olympics OR "Neeraj Chopra" OR Wimbledon OR "Grand Slam" OR badminton OR hockey OR kabaddi OR "Asian Games"'}
+    - {id: sports_2, lang: en, genres: [sports], window: "when:1d",
+       q: '"Formula 1" OR Verstappen OR chess OR Gukesh OR "PV Sindhu" OR "Commonwealth Games" OR "Diamond League" OR "Pro Kabaddi"'}
+    # Entertainment
+    - {id: movies, lang: en, genres: [movies], window: "when:1d",
+       q: 'Bollywood OR "box office" OR "film trailer" OR "Shah Rukh Khan" OR "Salman Khan" OR "Alia Bhatt" OR "Deepika Padukone" OR Oscars'}
+    - {id: movies_2, lang: en, genres: [movies], window: "when:1d",
+       q: 'Tollywood OR Kollywood OR "Telugu film" OR "Tamil film" OR "Allu Arjun" OR Prabhas OR "Filmfare Awards" OR "box office collection"'}
+    - {id: ott_tv, lang: en, genres: [ott_tv], window: "when:1d",
+       q: 'Netflix OR "Prime Video" OR JioHotstar OR "web series" OR "OTT release" OR "Bigg Boss" OR "Kaun Banega Crorepati" OR TRP'}
+    - {id: music, lang: en, genres: [music], window: "when:1d",
+       q: '"Arijit Singh" OR "AR Rahman" OR concert OR "music festival" OR Coldplay OR "Diljit Dosanjh" OR Grammy OR Spotify'}
+    - {id: gaming, lang: en, genres: [gaming], window: "when:1d",
+       q: 'gaming OR esports OR BGMI OR "GTA 6" OR PlayStation OR Xbox OR "Free Fire" OR Nintendo OR "video game" OR gamers'}
+    # Lifestyle
+    - {id: health, lang: en, genres: [health], window: "when:1d",
+       q: 'fitness OR "mental health" OR diabetes OR "heart attack" OR dengue OR ICMR OR "bird flu" OR "weight loss"'}
+    - {id: food, lang: en, genres: [food], window: "when:1d",
+       q: 'recipe OR restaurant OR "street food" OR FSSAI OR "food delivery" OR "food festival" OR biryani OR "food safety"'}
+    - {id: travel, lang: en, genres: [travel], window: "when:1d",
+       q: '"travel guide" OR "tourist destinations" OR "hill station" OR "visa-free" OR IndiGo OR "Air India" OR "Vande Bharat" OR IRCTC'}
+    - {id: fashion, lang: en, genres: [fashion], window: "when:1d",
+       q: 'fashion OR "fashion week" OR skincare OR Nykaa OR "Met Gala" OR "red carpet" OR "beauty tips" OR Sabyasachi OR "ethnic wear" OR saree'}
+    - {id: auto, lang: en, genres: [auto], window: "when:1d",
+       q: '"car launch" OR SUV OR "ex-showroom" OR "electric vehicle" OR "Royal Enfield" OR "bike launch" OR "Bharat NCAP" OR "test drive"'}
+    - {id: spirituality, lang: en, genres: [spirituality], window: "when:1d",
+       q: 'horoscope OR rashifal OR astrology OR Panchang OR "shubh muhurat" OR "Ram Mandir" OR "Char Dham" OR Navratri OR Diwali'}
+    # Society
+    - {id: politics, lang: en, genres: [politics], window: "when:1d",
+       q: '"Lok Sabha" OR "Rajya Sabha" OR BJP OR Congress OR "Narendra Modi" OR "assembly election" OR "Supreme Court" OR "Election Commission"'}
+    - {id: politics_2, lang: en, genres: [politics], window: "when:1d",
+       q: '"foreign policy" OR "Operation Sindoor" OR "chief minister" OR "Rahul Gandhi" OR "Arvind Kejriwal" OR "Mamata Banerjee" OR BRICS'}
+    - {id: education, lang: en, genres: [education], window: "when:1d",
+       q: 'NEET OR JEE OR CBSE OR UPSC OR CUET OR "board exam" OR "admit card" OR "study abroad"'}
+    - {id: environment, lang: en, genres: [environment], window: "when:1d",
+       q: 'monsoon OR heatwave OR IMD OR cyclone OR "air quality" OR AQI OR "climate change" OR "Delhi pollution"'}
   # Google News mixes in foreign outlets even for the India edition. Results are kept only from .in domains,
   # domains containing "india" (indiatimes.com, indianexpress.com, ...) and these Indian outlets.
   allowed_domains: [livemint.com, business-standard.com, moneycontrol.com, cnbctv18.com, ndtvprofit.com,
@@ -29,25 +95,53 @@ google_news:
                     timesnownews.com, republicworld.com, wionews.com, lokmat.com, mid-day.com, thequint.com,
                     etmoney.com, paisabazaar.com, bankbazaar.com, policybazaar.com, inc42.com, entrackr.com,
                     yourstory.com, medianama.com, vccircle.com, outlookbusiness.com, tv9hindi.com,
-                    in.investing.com, linkedin.com]
+                    in.investing.com, linkedin.com,
+                    # sports
+                    espncricinfo.com, cricbuzz.com, sportskeeda.com, mykhel.com, khelnow.com, crictracker.com,
+                    cricketaddictor.com, sportstiger.com,
+                    # entertainment
+                    bollywoodhungama.com, filmfare.com, pinkvilla.com, koimoi.com, bollywoodlife.com, filmibeat.com,
+                    ottplay.com, zoomtventertainment.com, tellychakkar.com, cinemaexpress.com, behindwoods.com,
+                    mensxp.com, rediff.com, thenewsminute.com, onmanorama.com, mathrubhumi.com, deccanchronicle.com,
+                    bookmyshow.com, radioandmusic.com,
+                    # tech and gaming
+                    gadgets360.com, 91mobiles.com, beebom.com, techlusive.com, fonearena.com, smartprix.com,
+                    mysmartprice.com, gizbot.com, telecomtalk.info, nextbigwhat.com,
+                    # cars and bikes
+                    carwale.com, cardekho.com, zigwheels.com, rushlane.com, team-bhp.com, bikewale.com,
+                    bikedekho.com, carandbike.com, motoroids.com, autox.com, evreporter.com, gaadiwaadi.com,
+                    # health, food, travel and fashion
+                    healthshots.com, thehealthsite.com, onlymyhealth.com, slurrp.com, tarladalal.com,
+                    curlytales.com, scoopwhoop.com, tripoto.com, thrillophilia.com, makemytrip.com,
+                    travelbizmonitor.com, aviationa2z.com, missmalini.com, bollywoodshaadis.com, fibre2fashion.com,
+                    # astrology, politics and education
+                    astrosage.com, drikpanchang.com, astroyogi.com, astrotalk.com, patrika.com, jansatta.com,
+                    prabhatkhabar.com, swarajyamag.com, newslaundry.com, barandbench.com, shiksha.com,
+                    jagranjosh.com, collegedunia.com, careers360.com, educationtimes.com, edexlive.com,
+                    aglasem.com, testbook.com, adda247.com,
+                    # environment, careers, marketing, business and property
+                    skymetweather.com, mongabay.com, saurenergy.com, solarquarter.com, naukri.com, shine.com,
+                    timesjobs.com, hrkatha.com, afaqs.com, exchange4media.com, adgully.com, bestmediainfo.com,
+                    storyboard18.com, socialsamosa.com, startuptalky.com, housing.com, 99acres.com,
+                    magicbricks.com, squareyards.com, proptiger.com, anarock.com]
 
 news_feeds:
-  - {id: et_markets, url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms"}
-  - {id: et_wealth, url: "https://economictimes.indiatimes.com/wealth/rssfeeds/837555174.cms"}
-  - {id: et_mf, url: "https://economictimes.indiatimes.com/mf/rssfeeds/359241701.cms"}
-  - {id: mint_markets, url: "https://www.livemint.com/rss/markets"}
-  - {id: mint_money, url: "https://www.livemint.com/rss/money"}
-  - {id: bs_markets, url: "https://www.business-standard.com/rss/markets-106.rss"}
-  - {id: bs_finance, url: "https://www.business-standard.com/rss/finance-103.rss"}
-  - {id: bs_economy, url: "https://www.business-standard.com/rss/economy-102.rss"}
-  - {id: cnbctv18_market, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml"}
-  - {id: cnbctv18_economy, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/economy.xml"}
-  - {id: cnbctv18_pf, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/personal-finance.xml"}
-  - {id: ndtvprofit, url: "https://feeds.feedburner.com/ndtvprofit-latest"}
+  - {id: et_markets, url: "https://economictimes.indiatimes.com/markets/rssfeeds/1977021501.cms", genres: [stock_market]}
+  - {id: et_wealth, url: "https://economictimes.indiatimes.com/wealth/rssfeeds/837555174.cms", genres: [personal_finance, wealth]}
+  - {id: et_mf, url: "https://economictimes.indiatimes.com/mf/rssfeeds/359241701.cms", genres: [personal_finance]}
+  - {id: mint_markets, url: "https://www.livemint.com/rss/markets", genres: [stock_market]}
+  - {id: mint_money, url: "https://www.livemint.com/rss/money", genres: [personal_finance]}
+  - {id: bs_markets, url: "https://www.business-standard.com/rss/markets-106.rss", genres: [stock_market]}
+  - {id: bs_finance, url: "https://www.business-standard.com/rss/finance-103.rss", genres: [economy, personal_finance]}
+  - {id: bs_economy, url: "https://www.business-standard.com/rss/economy-102.rss", genres: [economy]}
+  - {id: cnbctv18_market, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/market.xml", genres: [stock_market]}
+  - {id: cnbctv18_economy, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/economy.xml", genres: [economy]}
+  - {id: cnbctv18_pf, url: "https://www.cnbctv18.com/commonfeeds/v1/cne/rss/personal-finance.xml", genres: [personal_finance]}
+  - {id: ndtvprofit, url: "https://feeds.feedburner.com/ndtvprofit-latest", genres: [stock_market, economy]}
 
 regulators:
-  - {id: rbi, url: "https://rbi.org.in/pressreleases_rss.xml"}
-  - {id: sebi, url: "https://www.sebi.gov.in/sebirss.xml"}
+  - {id: rbi, url: "https://rbi.org.in/pressreleases_rss.xml", genres: [economy]}
+  - {id: sebi, url: "https://www.sebi.gov.in/sebirss.xml", genres: [stock_market]}
 
 x_trends:
   primary: "https://trends24.in/india/"
@@ -56,6 +150,7 @@ x_trends:
 reddit:
   url_template: "https://www.reddit.com/r/{sub}/rising/.rss"
   subreddits: [IndiaInvestments, personalfinanceindia, IndianStockMarket, IndianStreetBets, FIREIndia, CreditCardsIndia, IndiaTax, StockMarketIndia]
+  genres: [personal_finance, stock_market]
 
 markets:
   url_template: "https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
@@ -71,3 +166,4 @@ markets:
 
 youtube:
   rss_template: "https://www.youtube.com/feeds/videos.xml?channel_id={id}"
+  genres: [personal_finance, stock_market]

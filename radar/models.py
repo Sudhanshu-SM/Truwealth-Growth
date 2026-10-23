@@ -22,6 +22,7 @@ class Signal:
     metrics: dict[str, float] = field(default_factory=dict)
     key: str = ""
     topic_hint: str = ""
+    genres: tuple[str, ...] = ()     # the genres of the source it came from; none for trends and markets
 
 
 @dataclass(frozen=True)
@@ -32,6 +33,7 @@ class Topic:
     keywords: tuple[str, ...]
     angles: tuple[str, ...]
     emerging: bool = False
+    genres: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
