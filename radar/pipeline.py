@@ -59,6 +59,16 @@ def fresh(signals: list[Signal], now: datetime, max_age_hours: float) -> list[Si
     return [s for s in signals if s.published_at is None or now - s.published_at <= timedelta(hours=max_age_hours)]
 
 
+def _hand_off(name: str, step: Callable[..., int], *args: Any, **kwargs: Any) -> int:
+    """Run one hand-off step. A bug in it is logged, never raised: hand-off errors never fail a run, and must not stop
+    the other steps, the prune or the run_index update either."""
+    try:
+        return step(*args, **kwargs)
+    except Exception:
+        log.exception("hand-off step %s failed", name)
+        return 0
+
+
 def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, out_dir: Path,
         env: Mapping[str, str], collectors: Mapping[str, Collector] | None = None,
         push: Callable[..., bool] = handoff.push_decision, sheet: Callable[..., bool] = handoff.push_sheet,
@@ -132,9 +142,11 @@ def run(cfg: Config, store: Store, http: Any, now: datetime, *, dry_run: bool, o
     decided = {sc.topic_id for sc, _ in decisions}
     rising = fed = latest = 0
     if not warm:
-        rising = handoff.push_rising(store, cfg, scores, decided, catalog, now, env, multipliers, spikes, push=sheet)
-        fed = handoff.push_feed(store, cfg, scores, decided, catalog, now, env, multipliers, spikes, push=feed)
-        latest = handoff.push_quiet(store, cfg, scores, catalog, now, env, multipliers, push=feed)
+        rising = _hand_off("rising", handoff.push_rising, store, cfg, scores, decided, catalog, now, env, multipliers,
+                           spikes, push=sheet)
+        fed = _hand_off("feed", handoff.push_feed, store, cfg, scores, decided, catalog, now, env, multipliers, spikes,
+                        push=feed)
+        latest = _hand_off("quiet", handoff.push_quiet, store, cfg, scores, catalog, now, env, multipliers, push=feed)
 
     phrases.prune_singletons(store.conn, now)
     store.prune(now, s["retention"])

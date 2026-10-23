@@ -197,6 +197,10 @@ def detect(conn: sqlite3.Connection, cfg: Config, new_items: list[tuple[str, Sig
             name = _display_name(ph, (info[i]["title"] for i in sorted(ids)))
             genres = common_genres(Counter(g for i in sorted(ids) for g in item_genres[i]), len(ids),
                                    p["genre_common_share"])
+            if genres[0] not in cfg.finance_genres:
+                # A story led by another genre is not a finance story because a finance outlet also covers it: any
+                # finance genre would send it to the Sheet and the HOT emails (see Config.is_finance).
+                genres = tuple(g for g in genres if g not in cfg.finance_genres)
             conn.execute(
                 "INSERT INTO emerging_topics (topic_id, phrase, name, bucket, genres, created_at, last_seen_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(topic_id) DO UPDATE SET last_seen_at = excluded.last_seen_at",

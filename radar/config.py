@@ -76,6 +76,10 @@ def load_config(config_dir: Path = DEFAULT_DIR) -> Config:
     topics: list[Topic] = []
     for t in topics_raw["topics"]:
         topic_genres = _check_genres(f"topic {t['id']}", t.get("genres"), genres)
+        # "Has a finance genre" and "leads with one" must agree: a new emerging topic keeps finance genres only when
+        # its first genre is one (phrases.detect), and Config.is_finance asks for any.
+        if topic_genres[0] not in finance_genres and not finance_genres.isdisjoint(topic_genres):
+            raise ConfigError(f"topic {t['id']}: finance genre must come first")
         # A finance bucket is explicit; any other topic's bucket is its first genre.
         bucket = t.get("bucket", topic_genres[0])
         if "bucket" in t and bucket not in BUCKETS:

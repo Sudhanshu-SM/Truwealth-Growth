@@ -1,6 +1,7 @@
 from collections import Counter
 from datetime import timedelta
 
+import pytest
 from helpers import NOW
 
 from radar.config import load_config
@@ -20,6 +21,10 @@ MARSH = ["Jaden Marsh debut shocks selectors", "Jaden Marsh: the debutant everyo
          "How Jaden Marsh cracked the nets in Perth", "Jaden Marsh signs on for a county stint"]
 ZETA = ["Zeta Bank collapse shocks depositors", "Zeta Bank collapse: what depositors must know",
         "RBI steps in after Zeta Bank collapse", "Zeta Bank collapse explained"]
+# A film no static topic knows, in six headlines (the genres of their sources are what the tests vary).
+VELVET = ["Velvet Storm poster drops tonight", "Velvet Storm cast revealed at Mumbai event",
+          "Velvet Storm sequel confirmed by makers", "Velvet Storm director opens up",
+          "Velvet Storm first look wins fans", "Velvet Storm songs top charts"]
 
 
 def news(title, feed, minutes_ago=10, source_type="news", genres=()):
@@ -88,6 +93,27 @@ def test_cricket_phrase_becomes_an_emerging_cricket_topic(tmp_path):
     assert [(s.phrase, s.emerging) for s in detect(st.conn, CFG, new, NOW)] == [("jaden marsh", True)]
     (topic,) = [t for t in active_emerging(st.conn, NOW, 48) if "jaden marsh" in t.keywords[0]]
     assert topic.genres == ("cricket",) and topic.bucket == "cricket"
+
+
+@pytest.mark.parametrize("lead, minor, genres, n_linked", [
+    # a film story, 4 of whose 6 items come from movies outlets: a finance outlet's items must not make it a finance topic
+    (("movies",), ("stock_market",), ("movies",), 4),
+    (("movies",), ("economy", "stock_market"), ("movies",), 4),        # every finance genre goes, not just one
+    (("movies",), ("politics",), ("movies", "politics"), 6),           # the other genres stay
+    (("economy",), ("politics",), ("economy", "politics"), 6),         # a story led by a finance genre keeps them all
+    (("stock_market",), ("movies",), ("stock_market", "movies"), 6),
+])
+def test_a_new_topic_led_by_a_non_finance_genre_has_no_finance_genre(tmp_path, lead, minor, genres, n_linked):
+    """The Sheet, the HOT emails and the digest take any topic with a finance genre, so a finance genre on a story that
+    is not led by one would send it to the ghostwriter's live engine."""
+    assert not any(Matcher(CFG.topics).match(t) for t in VELVET)     # else the spike would map to a static topic
+    st = Store(tmp_path / "r.db")
+    new = st.add_items([news(t, f"feed{i}", genres=lead if i < 4 else minor) for i, t in enumerate(VELVET)], NOW)
+    detect(st.conn, CFG, new, NOW)
+    (topic,) = active_emerging(st.conn, NOW, 48)
+    assert topic.genres == genres
+    assert CFG.is_finance(topic) == (lead[0] in CFG.finance_genres)
+    assert len(linked(st, topic.id)) == n_linked        # items from outlets that share no genre with it stay out
 
 
 def test_items_without_source_genres_count_through_the_static_topics_they_matched(tmp_path):

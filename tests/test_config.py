@@ -93,6 +93,8 @@ def test_unknown_genre_raises(tmp_path):
 @pytest.mark.parametrize("filename, new, message", [
     ("topics.yaml", "genres: []", "topic sip_mutual_funds: no genres"),
     ("topics.yaml", "genres: [cricket]", "topic sip_mutual_funds: finance bucket without a finance genre"),
+    # is_finance means "has a finance genre" and a new emerging topic is finance when one leads: a static topic agrees
+    ("topics.yaml", "genres: [cricket, personal_finance]", "topic sip_mutual_funds: finance genre must come first"),
     ("sources.yaml", "genres: [no_such_genre]", r"source mf: unknown genres \['no_such_genre'\]"),
     ("sources.yaml", "genres: []", "source mf: no genres"),
 ])

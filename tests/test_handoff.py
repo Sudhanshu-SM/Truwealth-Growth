@@ -6,11 +6,13 @@ import types
 from datetime import timedelta
 
 import httpx
+import pytest
 from helpers import NOW
 from test_pipeline import CFG, fake_collectors, past_warmup
 
 from radar import handoff, pipeline, scorer
 from radar.http import Http
+from radar.matcher import Matcher
 from radar.models import Brief, Signal, Topic, TopicScore
 from radar.store import Store
 from radar.timeutil import ist
@@ -123,6 +125,30 @@ def genre_collectors():
         return [*news, trend, story]
 
     return {**fake_collectors(), "other_genres": other_genres}
+
+
+TAILS = ["what we know so far", "the full story", "reactions pour in", "fresh details emerge", "timeline of events",
+         "key facts explained", "latest development", "second day coverage", "third day coverage"]
+
+
+def emerging_story(name, lead, n_lead, minor, n_minor, trend):
+    """Collectors for one story no static topic knows: `n_lead` headlines from different outlets of genre `lead`,
+    `n_minor` from a single outlet of genre `minor` (Moneycontrol's search is tagged stock_market), and a Google trend
+    for it when `trend` (a second kind of source, which is what makes the score a HOT alert's)."""
+    titles = [f"{name} {tail}" for tail in TAILS]
+    assert not any(Matcher(CFG.topics).match(t) for t in titles)     # else it would heat a static topic
+
+    def news(ctx):
+        return [Signal(source="google_news", source_type="news", feed=f"gn:outlet{i}" if i < n_lead else "gn:minor",
+                       title=title, url=None, published_at=ctx.now - timedelta(minutes=5),
+                       genres=(lead,) if i < n_lead else (minor,)) for i, title in enumerate(titles[:n_lead + n_minor])]
+
+    def trends(ctx):
+        return [Signal(source="google_trends", source_type="search_trend", feed="google_trends_in", title=name.lower(),
+                       url="https://g.test/story", published_at=ctx.now - timedelta(minutes=30), text=titles[0],
+                       metrics={"approx_traffic": 50000.0})] if trend else []
+
+    return {"google_news": news, "google_trends": trends}
 
 
 # --- C1: rows for the Radar topics tab ---------------------------------------------------------------------------
@@ -686,3 +712,56 @@ def test_default_destinations_keep_the_sheet_finance_only(tmp_path, monkeypatch)
         ("gold_price", "hot"), (CRICKET[0], "hot"), ("market_moves", "rising"), (FOOD[0], "latest")}
     assert len({row["topic_id"] for row in rows}) == len(rows)  # each topic once
     assert all(row["genres"] for row in rows)
+
+
+# A film story that no static topic knows: 4 headlines from movies outlets and 2 from a finance outlet go to the Sheet
+# as rising, and 6 and 3 with a Google trend are a HOT alert, when the finance outlet's genre makes it a finance topic.
+@pytest.mark.parametrize("n_movies, n_finance, trend", [(4, 2, False), (6, 3, True)])
+def test_a_movies_story_with_finance_outlet_items_never_reaches_the_sheet_or_an_alert(tmp_path, n_movies, n_finance,
+                                                                                      trend):
+    push, sheet, feed = FakePush(), FakePush(), FakePush()
+    st = past_warmup(Store(tmp_path / "r.db"))
+    run_radar(st, push, tmp_path / "out", sheet=sheet, feed=feed,
+              collectors=emerging_story("Velvet Storm", "movies", n_movies, "stock_market", n_finance, trend))
+    (topic,) = st.conn.execute("SELECT topic_id, genres FROM emerging_topics")
+    # nothing for an alert's push or the Sheet (Tejas's live engine drafts whatever lands there), no alert row, no email
+    assert push.calls == [] and sheet.calls == []
+    assert st.conn.execute("SELECT COUNT(*) FROM alerts").fetchone()[0] == 0
+    assert not (tmp_path / "out").exists()
+    assert topic["topic_id"] in [t for t, _ in feed.calls]      # Supabase takes it, for the people who picked movies
+    assert topic["genres"] == "movies"      # the finance outlet's items do not make it a finance topic
+
+
+@pytest.mark.parametrize("n_economy, n_politics, trend, kind", [(4, 2, False, "rising"), (6, 3, True, "hot")])
+def test_an_economy_story_with_politics_items_still_reaches_the_sheet(tmp_path, n_economy, n_politics, trend, kind):
+    push, sheet, feed = FakePush(), FakePush(), FakePush()
+    st = past_warmup(Store(tmp_path / "r.db"))
+    run_radar(st, push, tmp_path / "out", sheet=sheet, feed=feed,
+              collectors=emerging_story("Zeta Bank collapse", "economy", n_economy, "politics", n_politics, trend))
+    (topic,) = st.conn.execute("SELECT topic_id, genres FROM emerging_topics")
+    assert topic["genres"] == "economy,politics"      # finance leads, so it keeps its politics genre too
+    # a HOT alert goes through `push` (the Sheet and Supabase), a rising topic through `sheet`: the Sheet has it either way
+    assert push.calls + sheet.calls == [(topic["topic_id"], kind)]
+    assert [r["topic_id"] for r in st.conn.execute("SELECT topic_id FROM alerts")] == (
+        [topic["topic_id"]] if kind == "hot" else [])
+    assert (tmp_path / "out").exists() == (kind == "hot")      # the HOT email
+
+
+class Broken(FakePush):
+    """A FakePush that records the call, then raises like a bug in a hand-off step would."""
+
+    def __call__(self, brief, kind, now, env):
+        super().__call__(brief, kind, now, env)
+        raise RuntimeError("boom")
+
+
+@pytest.mark.parametrize("broken", ["sheet", "feed"])
+def test_a_hand_off_step_that_raises_does_not_fail_the_run_or_stop_the_others(tmp_path, caplog, broken):
+    """The README promises that hand-off errors never fail a run. The Sheet's rising step, the feed's and the quiet
+    genres' are three steps, and the prune and the run_index update come after them."""
+    sheet, feed = (Broken() if broken == "sheet" else FakePush()), (Broken() if broken == "feed" else FakePush())
+    st = past_warmup(Store(tmp_path / "r.db"))
+    assert run_radar(st, FakePush(), tmp_path / "out", sheet=sheet, feed=feed, collectors=genre_collectors()) == 0
+    assert sheet.calls and {"hot", "latest"} <= {kind for _, kind in feed.calls}      # all three steps were tried
+    assert st.get_kv("run_index") == "1"      # and the run went on to its end
+    assert "boom" in caplog.text
