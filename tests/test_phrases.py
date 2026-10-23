@@ -116,6 +116,25 @@ def test_a_new_topic_led_by_a_non_finance_genre_has_no_finance_genre(tmp_path, l
     assert len(linked(st, topic.id)) == n_linked        # items from outlets that share no genre with it stay out
 
 
+@pytest.mark.parametrize("first, n_first, second, n_second, genres", [
+    ("movies", 3, "stock_market", 3, ("movies",)),                    # a tie: neither leads, so no finance genre
+    ("stock_market", 3, "movies", 3, ("movies",)),                    # the same tie with the outlets the other way round
+    ("stock_market", 3, "movies", 2, ("stock_market", "movies")),     # finance one ahead: it leads, and all stay
+    ("movies", 3, "stock_market", 2, ("movies",)),                    # finance one behind
+])
+def test_a_story_keeps_finance_genres_only_when_finance_outnumbers_every_other_genre(
+        tmp_path, first, n_first, second, n_second, genres):
+    """A tie went to the genre read first, which could be a finance one: a film story the finance outlet covers as much
+    as the film outlets would then reach the Sheet. A tie is the same story whichever outlet is read first."""
+    st = Store(tmp_path / "r.db")
+    sides = [(first,)] * n_first + [(second,)] * n_second
+    new = st.add_items([news(t, f"feed{i}", genres=g) for i, (t, g) in enumerate(zip(VELVET, sides))], NOW)
+    detect(st.conn, CFG, new, NOW)
+    (topic,) = active_emerging(st.conn, NOW, 48)
+    assert topic.genres == genres
+    assert CFG.is_finance(topic) == (topic.genres[0] in CFG.finance_genres)      # a finance genre only when it leads
+
+
 def test_items_without_source_genres_count_through_the_static_topics_they_matched(tmp_path):
     # Items restored from an old cache have no genres of their own. Two of these four matched banking_news, which
     # is half of them (enough for the gate) but under map_share (so the spike stays an emerging topic).

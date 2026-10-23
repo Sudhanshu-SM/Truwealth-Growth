@@ -195,12 +195,16 @@ def detect(conn: sqlite3.Connection, cfg: Config, new_items: list[tuple[str, Sig
         if topic_id is None:
             topic_id = "emerging:" + slugify(ph)
             name = _display_name(ph, (info[i]["title"] for i in sorted(ids)))
-            genres = common_genres(Counter(g for i in sorted(ids) for g in item_genres[i]), len(ids),
-                                   p["genre_common_share"])
-            if genres[0] not in cfg.finance_genres:
-                # A story led by another genre is not a finance story because a finance outlet also covers it: any
-                # finance genre would send it to the Sheet and the HOT emails (see Config.is_finance).
-                genres = tuple(g for g in genres if g not in cfg.finance_genres)
+            counts = Counter(g for i in sorted(ids) for g in item_genres[i])
+            top_finance = max((n for g, n in counts.items() if g in cfg.finance_genres), default=0)
+            top_other = max((n for g, n in counts.items() if g not in cfg.finance_genres), default=0)
+            if top_finance and top_finance <= top_other:
+                # Finance genres stay only when they outnumber every other genre on the story's items. On a tie, or
+                # when another genre has more, a finance outlet covering a film does not make it a finance story: any
+                # finance genre would send it to the Sheet and the HOT emails (see Config.is_finance). A finance genre
+                # that stays leads, as config.py asks of a static topic.
+                counts = Counter({g: n for g, n in counts.items() if g not in cfg.finance_genres})
+            genres = common_genres(counts, len(ids), p["genre_common_share"])
             conn.execute(
                 "INSERT INTO emerging_topics (topic_id, phrase, name, bucket, genres, created_at, last_seen_at) "
                 "VALUES (?, ?, ?, ?, ?, ?, ?) ON CONFLICT(topic_id) DO UPDATE SET last_seen_at = excluded.last_seen_at",
