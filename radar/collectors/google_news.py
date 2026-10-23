@@ -2,12 +2,18 @@
 (the block's default is the last hour) and tags its items with the genres of the search."""
 from __future__ import annotations
 
+import re
 from urllib.parse import urlparse
 
 from radar.collectors import Context, gather
 from radar.models import Signal
 from radar.rss import parse_feed
 from radar.text import slugify
+
+# A US SEC filing ("Form 4 Acme Ltd ...", "Form 8-K ..."): in.investing.com sends them and they match genre searches by
+# company name. Named forms, not "Form <any number>": Indian tax stories start "Form 16" (itr_filing's own keyword),
+# "Form 60" or "Form 10-IEA".
+SEC_FILING = re.compile(r"Form (?:[345]|144|13[DFG]|\d+-[KQF])\b")
 
 
 def indian_source(url: str, allowed_domains: frozenset[str]) -> bool:
@@ -20,7 +26,8 @@ def parse(raw: bytes, lang: str = "en", allowed_domains: frozenset[str] = frozen
           genres: tuple[str, ...] = ()) -> list[Signal]:
     out = []
     for e in parse_feed(raw):
-        if not e.title or (e.source_url and not indian_source(e.source_url, allowed_domains)):
+        if (not e.title or SEC_FILING.match(e.title)
+                or (e.source_url and not indian_source(e.source_url, allowed_domains))):
             continue
         title = e.title
         suffix = f" - {e.source}" if e.source else ""

@@ -104,3 +104,18 @@ def test_regulator_items_carry_their_feed_genres():
     ctx = make_ctx(lambda request: httpx.Response(200, content=fixture_bytes("sebi.xml")))
     assert {s.feed: s.genres for s in regulators.collect(ctx)} == {
         f["id"]: tuple(f["genres"]) for f in ctx.config.sources["regulators"]}
+
+
+def test_google_news_skips_us_sec_filings_but_keeps_indian_tax_forms():
+    # in.investing.com is on the allowlist and syndicates SEC filings, which then match genre searches by company name
+    items = [("Form 4 DLF Ltd For: 15 October - in.investing.com", "https://in.investing.com"),
+             ("Form 8-K Brigade Enterprises Ltd - in.investing.com", "https://in.investing.com"),
+             ("Form 16: what salaried taxpayers must check before filing ITR - Mint", "https://www.livemint.com"),
+             ("Sensex falls 800 points as FPIs sell - The Economic Times", "https://economictimes.indiatimes.com")]
+    xml = "".join(f'<item><title>{title}</title><link>https://news.google.com/rss/articles/{i}</link>'
+                  f'<pubDate>Sat, 26 Sep 2026 07:51:13 GMT</pubDate><source url="{url}">{title.rsplit(" - ", 1)[1]}'
+                  f'</source></item>' for i, (title, url) in enumerate(items))
+    raw = f'<?xml version="1.0"?><rss version="2.0"><channel>{xml}</channel></rss>'.encode()
+    sigs = google_news.parse(raw, "en", frozenset({"in.investing.com", "livemint.com"}))
+    assert [s.title for s in sigs] == ["Form 16: what salaried taxpayers must check before filing ITR",
+                                       "Sensex falls 800 points as FPIs sell"]      # "Form 16" is itr_filing's keyword

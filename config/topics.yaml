@@ -353,7 +353,7 @@ topics:
   - id: government_jobs
     name: "Government jobs & recruitment"
     genres: [careers, education]
-    keywords: ["sarkari naukri", "government jobs", "government job", "govt jobs", "recruitment notification", "vacancy", "vacancies", "last date to apply", "SSC", "RRB", "IBPS", "railway recruitment", "bank recruitment", "police recruitment", "teacher recruitment", "सरकारी नौकरी"]
+    keywords: ["sarkari naukri", "government jobs", "government job", "govt jobs", "recruitment notification", "job vacancy", "job vacancies", "vacancies notified", "posts vacant", "recruitment drive", "last date to apply", "SSC", "RRB", "IBPS", "railway recruitment", "bank recruitment", "police recruitment", "teacher recruitment", "सरकारी नौकरी"]
     angles: [checklist, faq, explainer, mistakes_list, myth_bust]
 
   # Marketing & creators
@@ -650,7 +650,7 @@ topics:
   - id: car_launches
     name: "Car launches & reviews"
     genres: [auto]
-    keywords: ["car launch", "car launches", "new car", "SUV", "SUVs", "sedan", "hatchback", "Maruti Suzuki", "Mahindra Thar", "Mahindra XUV", "Tata Punch", "Toyota", "Kia", "Honda Elevate", "car price", "ex-showroom", "on-road price", "test drive", "first drive", "mileage", "ADAS", "Bolero", "Scorpio-N", "XUV700", "Dzire", "Baleno", "Brezza", "Creta", "Nexon", "Harrier", "Seltos", "Innova", "Fortuner", "Fronx", "Ertiga", "Sonet", "Hyundai", "Skoda", "Volkswagen", "MG Windsor", "carmaker", "carmakers", "automaker", "automakers", "car sales", "passenger vehicle", "passenger vehicles", "facelift", "CNG car", "CNG cars", "automatic cars"]
+    keywords: ["car launch", "car launches", "new car", "SUV launch", "SUV launches", "SUV launched", "new SUV", "new SUVs", "SUV unveiled", "sedan", "hatchback", "Maruti Suzuki", "Mahindra Thar", "Mahindra XUV", "Tata Punch", "Toyota", "Kia", "Honda Elevate", "car price", "ex-showroom", "on-road price", "test drive", "first drive", "mileage", "ADAS", "Bolero", "Scorpio-N", "XUV700", "Dzire", "Baleno", "Brezza", "Creta", "Nexon", "Harrier", "Seltos", "Innova", "Fortuner", "Fronx", "Ertiga", "Sonet", "Hyundai", "Skoda", "Volkswagen", "MG Windsor", "carmaker", "carmakers", "automaker", "automakers", "car sales", "passenger vehicle", "passenger vehicles", "facelift", "CNG car", "CNG cars", "automatic cars"]
     angles: [should_you, data_compare, checklist, mistakes_list, poll, myth_bust]
   - id: electric_vehicles
     name: "Electric vehicles & charging"
@@ -682,7 +682,7 @@ topics:
   - id: temples_pilgrimages
     name: "Temples & pilgrimages"
     genres: [spirituality]
-    keywords: ["temple", "temples", "pilgrimage", "pilgrims", "Ram Mandir", "Ayodhya", "Tirupati", "Kedarnath", "Badrinath", "Char Dham", "Kumbh Mela", "Maha Kumbh", "Amarnath Yatra", "Vaishno Devi", "Sabarimala", "Kashi Vishwanath", "Mahakal", "Somnath", "Jagannath", "Kailash Mansarovar", "Shirdi", "darshan"]
+    keywords: ["temple", "temples", "pilgrimage", "pilgrims", "Ram Mandir", "Ayodhya", "Tirupati", "Kedarnath", "Badrinath", "Char Dham", "Kumbh Mela", "Maha Kumbh", "Amarnath Yatra", "Vaishno Devi", "Sabarimala", "Kashi Vishwanath", "Mahakal", "Somnath", "Jagannath", "Kailash Mansarovar", "Shirdi", "darshan timings", "darshan booking", "darshan tickets", "VIP darshan"]
     angles: [checklist, faq, explainer, timeline, data_compare, poll]
 
   # Politics & current affairs
